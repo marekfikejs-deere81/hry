@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-title" content="Hry">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Přes desítku</title>
+<meta name="hra:predmet" content="Matematika">
+<meta name="hra:popis" content="Sčítání a odčítání do 20, neznámá kdekoliv – hokejový zápas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Přes desítku: 3 třetiny po 6 příkladech, mezi nimi pohyb.
+   Příklady do 20, ~75 % přes desítku, neznámá na kterémkoliv místě.
+   Odpověď ťukáním na číselník (žádné psaní). Po chybě nápověda rozkladem přes 10. */
+:root{
+  --paper:#F6F9FC; --grid:#DCE7F2; --ink:#1C2A3A; --muted:#5B6E82; --card:#FFFFFF; --line:#C9D7E6;
+  --blue:#2563B8; --blue-soft:#E3EDFA; --red:#D23C3C; --red-soft:#FBE7E7;
+  --ok:#1F8A4C; --ok-soft:#E3F4E8; --warn:#B45309; --warn-soft:#FDF0E1; --on-blue:#FFFFFF;
+  --f-display:"Fredoka",ui-rounded,system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#16202B; --grid:#223142; --ink:#EAF1F8; --muted:#9AAEC2; --card:#1C2836; --line:#2E4157;
+  --blue:#6EA8FF; --blue-soft:#1D3150; --red:#FF6B6B; --red-soft:#4A2228;
+  --ok:#4CD38A; --ok-soft:#173A28; --warn:#FFB454; --warn-soft:#3D2C14; --on-blue:#0F1B2B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#16202B; --grid:#223142; --ink:#EAF1F8; --muted:#9AAEC2; --card:#1C2836; --line:#2E4157;
+  --blue:#6EA8FF; --blue-soft:#1D3150; --red:#FF6B6B; --red-soft:#4A2228;
+  --ok:#4CD38A; --ok-soft:#173A28; --warn:#FFB454; --warn-soft:#3D2C14; --on-blue:#0F1B2B; color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;
+  color:var(--ink); font-family:var(--f-body); font-size:20px;
+  overflow:hidden; overscroll-behavior:none;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+}
+.app{
+  height:100%; display:flex; flex-direction:column; gap:14px; max-width:1100px; margin:0 auto;
+  padding-top:max(14px,env(safe-area-inset-top,0px)); padding-bottom:max(14px,env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+header{display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-height:52px}
+.back{min-width:52px;height:52px;border-radius:14px;border:2px solid var(--grid);background:var(--card);color:var(--ink);
+  font-size:24px;display:flex;align-items:center;justify-content:center;text-decoration:none}
+h1{font-family:var(--f-display); font-weight:700; font-size:clamp(24px,3.2vw,34px); margin:0}
+.chip{font-family:var(--f-display); font-weight:600; font-size:18px; background:var(--blue-soft); color:var(--blue); padding:6px 14px; border-radius:999px}
+.chip:empty{display:none}
+.right{margin-left:auto; display:flex; align-items:center; gap:16px}
+.dots{display:flex; gap:6px}
+.dot{width:20px;height:20px;border-radius:50%;border:2.5px solid var(--muted)}
+.dot.done{background:var(--ink);border-color:var(--ink)}
+.dot.goal{background:var(--ok);border-color:var(--ok)}
+.dot.cur{border-color:var(--ink);border-width:4px}
+.score{font-family:var(--f-display); font-weight:700; font-size:26px; font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:6px}
+.score.pop{animation:pop .3s}
+@keyframes pop{50%{transform:scale(1.2)}}
+
+.stage{
+  flex:1; min-height:0; position:relative; overflow:hidden;
+  background:var(--card); border:3px solid var(--line); border-radius:28px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+  padding:24px; text-align:center;
+}
+.stage.scroll{overflow-y:auto; justify-content:flex-start}
+.stage.scroll>:first-child{margin-top:auto}
+.stage.scroll>:last-child{margin-bottom:auto}
+.big{font-family:var(--f-display); font-weight:700; font-size:clamp(30px,5vw,50px); line-height:1.2; margin:0}
+.small{font-size:clamp(20px,2.6vw,26px); color:var(--muted); line-height:1.5; margin:0; max-width:620px}
+.btn{
+  min-height:76px; min-width:240px; padding:0 36px; border:none; border-radius:22px;
+  background:var(--blue); color:var(--on-blue); font-family:var(--f-display); font-weight:700; font-size:30px; cursor:pointer;
+  box-shadow:0 5px 0 rgba(0,0,0,.18); transition:transform .08s;
+}
+.btn:active{transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.btn:disabled{opacity:.45}
+.btn.sec{background:var(--card); color:var(--ink); border:3px solid var(--line); box-shadow:none; font-size:24px; min-height:68px}
+.btn:focus-visible{outline:4px solid var(--ink); outline-offset:3px}
+.row{display:flex; gap:14px; flex-wrap:wrap; justify-content:center}
+
+/* Hrací plocha: příklad + zpráva vlevo, číselník vpravo (na výšku pod sebou) */
+.play{width:100%; height:100%; display:grid; grid-template-columns:1fr auto; gap:24px; align-items:center}
+.left{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; min-width:0}
+.eq{font-family:var(--f-display); font-weight:700; font-size:clamp(54px,8.5vw,104px); line-height:1;
+  display:flex; align-items:center; justify-content:center; gap:.22em; white-space:nowrap; font-variant-numeric:tabular-nums}
+.eq .op{color:var(--muted)}
+.slot{min-width:1.7em; height:1.3em; padding:0 .12em; border:5px dashed var(--blue); border-radius:.22em;
+  background:var(--blue-soft); color:var(--blue); display:inline-flex; align-items:center; justify-content:center}
+.slot.ok{border-style:solid; border-color:var(--ok); background:var(--ok-soft); color:var(--ok)}
+.slot.bad{border-color:var(--warn); background:var(--warn-soft); color:var(--warn); animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.msg{min-height:150px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; width:100%}
+.msg-t{font-family:var(--f-display); font-weight:700; font-size:clamp(30px,4.4vw,46px); margin:0}
+.msg-t.ok{color:var(--ok)} .msg-t.warn{color:var(--warn)}
+.msg-s{font-size:clamp(20px,2.6vw,26px); color:var(--muted); margin:0}
+.hint{display:flex; flex-direction:column; gap:6px; padding:12px 22px; border-radius:18px; background:var(--blue-soft);
+  font-family:var(--f-display); font-weight:600; font-size:clamp(26px,3.4vw,36px); line-height:1.25; font-variant-numeric:tabular-nums}
+.hint small{font-family:var(--f-body); font-weight:400; font-size:20px; color:var(--muted)}
+.hint .t{color:var(--blue)}
+
+.pad{display:grid; grid-template-columns:repeat(3,96px); grid-auto-rows:84px; gap:12px}
+.key{border:3px solid var(--line); border-radius:20px; background:var(--card); color:var(--ink);
+  font-family:var(--f-display); font-weight:700; font-size:40px; cursor:pointer; box-shadow:0 4px 0 var(--line); transition:transform .06s}
+.key:active{transform:translateY(3px); box-shadow:0 1px 0 var(--line)}
+.key.del{font-size:32px; color:var(--muted)}
+.key.go{background:var(--ok); border-color:var(--ok); color:#fff; box-shadow:0 4px 0 rgba(0,0,0,.2); font-size:34px}
+.key:disabled{opacity:.4}
+.key.wide{grid-column:span 3; font-size:30px}
+
+@media (max-aspect-ratio:1/1){
+  .play{grid-template-columns:1fr; grid-template-rows:1fr auto; gap:14px}
+  .pad{grid-template-columns:repeat(3,minmax(84px,1fr)); width:min(100%,420px); justify-self:center; grid-auto-rows:76px}
+  .msg{min-height:120px}
+}
+@media (max-height:640px) and (min-aspect-ratio:1/1){
+  .pad{grid-auto-rows:66px; gap:9px} .key{font-size:32px}
+}
+
+.periods{display:flex; gap:14px; flex-wrap:wrap; justify-content:center}
+.pcard{display:flex; flex-direction:column; align-items:center; gap:6px; width:170px; padding:16px 10px;
+  border:3px solid var(--line); border-radius:22px; background:var(--card)}
+.pcard .emoji{font-size:42px; line-height:1}
+.pcard b{font-family:var(--f-display); font-size:22px}
+.pcard span{font-size:17px; color:var(--muted)}
+.move-ico{font-size:96px; line-height:1}
+.badges{display:flex; gap:12px; flex-wrap:wrap; justify-content:center}
+.badge{display:flex; flex-direction:column; align-items:center; gap:4px; width:140px; padding:12px 8px;
+  border:3px solid var(--ok); border-radius:20px; background:var(--ok-soft)}
+.badge .emoji{font-size:40px; line-height:1}
+.badge b{font-family:var(--f-display); font-size:17px; line-height:1.2}
+.badge.off{border-color:var(--line); background:var(--card); opacity:.45; filter:grayscale(1)}
+.record{font-family:var(--f-display); font-weight:700; font-size:28px; color:var(--ok); margin:0}
+.stats{font-size:22px; line-height:1.6}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a class="back" href="index.html" aria-label="Zpět na hry">‹</a>
+    <h1 id="title">Přes desítku</h1>
+    <span class="chip" id="chip"></span>
+    <div class="right">
+      <div class="dots" id="dots"></div>
+      <div class="score" id="score" aria-label="Body">⭐ <span id="pts">0</span></div>
+    </div>
+  </header>
+  <main class="stage" id="stage"></main>
+</div>
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const stage=$('#stage');
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const M='−';
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+
+let timers=[];
+const T=(f,ms)=>{const id=setTimeout(f,ms);timers.push(id);return id};
+const clearT=()=>{timers.forEach(clearTimeout);timers=[]};
+
+/* ---------- Generátor příkladů ----------
+   Příklad = {a, op, b, c, u}; u = místo neznámé (0 = první číslo, 1 = druhé, 2 = výsledek). */
+const PER=6;
+
+function crossAdd(){                      // 8 + 5 = 13 (obě jednociferná, součet 11–18)
+  let a,b; do{a=rnd(2,9); b=rnd(2,9)}while(a+b<=10);
+  return {a,op:'+',b,c:a+b};
+}
+function crossSub(){                      // 13 − 5 = 8
+  const c=rnd(11,18), units=c-10; const b=rnd(units+1,9);
+  return {a:c,op:M,b,c:c-b};
+}
+function plainAdd(){                      // bez přechodu: 12 + 5 = 17, 3 + 6 = 9, 6 + 4 = 10
+  if(Math.random()<.7){ const u=rnd(1,7), s=rnd(1,9-u), t=10+u; return Math.random()<.75?{a:t,op:'+',b:s,c:t+s}:{a:s,op:'+',b:t,c:t+s} }
+  let a,b; do{a=rnd(2,8); b=rnd(2,8)}while(a+b>10||a+b<6); return {a,op:"+",b,c:a+b};
+}
+function plainSub(){                      // bez přechodu: 17 − 5 = 12, 9 − 4 = 5, 15 − 10 = 5
+  const r=Math.random();
+  if(r<.65){ const u=rnd(3,9), b=rnd(2,u-1); return {a:10+u,op:M,b,c:10+u-b} }
+  if(r<.8){ const a=rnd(11,19); return {a,op:M,b:10,c:a-10} }
+  const a=rnd(5,10), b=rnd(2,a-2); return {a,op:M,b,c:a-b};
+}
+const key=p=>`${p.a}${p.op}${p.b}`;
+
+// Místa neznámé v jednotlivých třetinách: od nejsnazšího (výsledek) po neznámou vpředu
+const UNKNOWN=[
+  [2,2,2,2,1,1],
+  [2,2,1,1,0,0],
+  [2,1,1,0,0,0]
+];
+function buildPeriod(pi,used){
+  // ~75 % přes desítku: 1. třetina 4 z 6, další 4–5 z 6 (průměr 13,5 z 18)
+  const nCross = pi===0 ? 4 : (Math.random()<.75?5:4);
+  const kinds=shuffle([...Array(PER)].map((_,i)=>i<Math.min(PER,nCross)));
+  if(pi===0){ const k=kinds.indexOf(false); if(k>0){kinds[k]=true; kinds[0]=false} } // začátek bez přechodu = jistý úspěch
+  let pos=UNKNOWN[pi].slice(); pos=pi===0?pos:shuffle(pos);
+  if(pi===0){ const head=pos.slice(0,2), tail=shuffle(pos.slice(2)); pos=head.concat(tail) }
+  return kinds.map((cross,i)=>{
+    let p,tries=0;
+    do{
+      const plus = i<2&&pi===0 ? true : Math.random()<.5;
+      p = cross ? (plus?crossAdd():crossSub()) : (plus?plainAdd():plainSub());
+      tries++;
+    }while(used.has(key(p))&&tries<40);
+    used.add(key(p)); p.u=pos[i]; p.cross=cross;
+    return p;
+  });
+}
+function answerOf(p){return [p.a,p.b,p.c][p.u]}
+
+/* ---------- Nápověda: rozklad přes desítku ----------
+   Vrátí řádky výpočtu. Pro neznámou na začátku/uprostřed nejdřív obrácený příklad. */
+function stepsAdd(x,y){
+  if(x<10&&y>=10)[x,y]=[y,x];
+  const s=x+y;
+  if(x<10&&y<10){
+    if(s<=10) return [[x,'+',y,s]];
+    const r=10-x; return [[x,'+',r,10],[10,'+',y-r,s]];
+  }
+  const u=x-10; return [[u,'+',y,u+y],[10,'+',u+y,s]];
+}
+function stepsSub(x,y){
+  const d=x-y;
+  if(x<=10) return [[x,M,y,d]];
+  if(y<10){
+    const u=x-10;
+    if(y<=u) return [[u,M,y,u-y],[10,'+',u-y,d]];
+    return [[x,M,u,10],[10,M,y-u,d]];
+  }
+  if(y===10) return [[x,M,10,d]];
+  return [[x,M,10,x-10],[x-10,M,y-10,d]];
+}
+function hintFor(p,reveal){
+  let lead='', steps;
+  if(p.u===2) steps = p.op==='+'?stepsAdd(p.a,p.b):stepsSub(p.a,p.b);
+  else if(p.op==='+'){                         // a+?=c  nebo  ?+b=c  →  c − známé
+    const k = p.u===1?p.a:p.b; lead=`${p.c} ${M} ${k} = ?`; steps=stepsSub(p.c,k);
+  }else if(p.u===1){                           // a−?=c  →  a − c
+    lead=`${p.a} ${M} ${p.c} = ?`; steps=stepsSub(p.a,p.c);
+  }else{                                       // ?−b=c  →  c + b
+    lead=`${p.c} + ${p.b} = ?`; steps=stepsAdd(p.c,p.b);
+  }
+  const rows=steps.map((s,i)=>{
+    const last=i===steps.length-1;
+    const r = last&&!reveal ? '?' : s[3];
+    return `<div>${s[0]} ${s[1]} ${s[2]} = <span class="t">${r}</span></div>`;
+  });
+  const title = steps.length<2 ? 'Spočítej:' : steps[0][3]===10 ? 'Přes desítku:' : 'Po krocích:';
+  return `<div class="hint">${lead?`<small>Hledám</small><div>${lead}</div>`:''}<small>${title}</small>${rows.join('')}</div>`;
+}
+
+/* ---------- Stav ---------- */
+const S={score:0,mode:'full',goals:0,total:0,first:0,streak:0,hattrick:false,periodGoals:[]};
+function addScore(n){
+  S.score+=n; $('#pts').textContent=S.score;
+  const el=$('#score'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+}
+function header(chip,res=null,cur=-1){
+  $('#chip').textContent=chip||'';
+  $('#dots').innerHTML=res?res.map((r,i)=>`<i class="dot ${r===1?'goal':r===0?'done':i===cur?'cur':''}"></i>`).join(''):'';
+}
+function plain(){stage.className='stage'; clearT(); document.onkeydown=null}
+
+/* ---------- Úvod třetiny ---------- */
+const PERIODS=[
+  {name:'1. třetina', emoji:'🏒', what:'Rozehrávka'},
+  {name:'2. třetina', emoji:'🥅', what:'Kde je neznámá?'},
+  {name:'3. třetina', emoji:'🔥', what:'Finále zápasu'}
+];
+function intro(pi,next){
+  plain(); header(S.mode==='full'?`${pi+1} z 3`:'Trénink');
+  $('#title').textContent=PERIODS[pi].name;
+  const ex = pi===0 ? `8 + 5 = <span class="slot">?</span>` : pi===1 ? `7 + <span class="slot">?</span> = 15` : `<span class="slot">?</span> ${M} 6 = 9`;
+  stage.innerHTML=`<div class="eq" style="font-size:clamp(40px,6vw,70px)">${ex}</div>
+    <p class="big">${pi===0?'Ťukni výsledek.':pi===1?'Otazník může být kdekoliv.':'Teď ty těžší!'}</p>
+    <p class="small">6 střel na branku.</p>
+    <button class="btn" id="go">Na led!</button>`;
+  $('#go').onclick=next;
+}
+
+/* ---------- Hraní jedné třetiny ---------- */
+function playPeriod(pi,tasks,done){
+  const res=Array(tasks.length).fill(null);
+  let i=0, goalsHere=0;
+  next();
+  function next(){
+    plain();
+    if(i>=tasks.length){S.periodGoals.push(goalsHere); return done()}
+    header(`${i} z ${tasks.length} hotovo`,res,i);
+    const p=tasks[i], ans=answerOf(p);
+    let typed='', tries=0, locked=false;
+    const parts=[p.a,p.op,p.b,'=',p.c].map((v,k)=>{
+      const idx = k===0?0 : k===2?1 : k===4?2 : -1;
+      if(idx===p.u) return `<span class="slot" id="slot">?</span>`;
+      return `<span class="${k===1||k===3?'op':''}">${v}</span>`;
+    });
+    stage.innerHTML=`<div class="play">
+      <div class="left"><div class="eq">${parts.join('')}</div><div class="msg" id="msg"></div></div>
+      <div class="pad" id="pad">
+        ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="key" data-n="${n}">${n}</button>`).join('')}
+        <button class="key del" data-d="1" aria-label="Smazat">⌫</button>
+        <button class="key" data-n="0">0</button>
+        <button class="key go" data-ok="1" aria-label="Potvrdit" disabled>✔</button>
+      </div></div>`;
+    const slot=$('#slot'), msg=$('#msg'), okBtn=stage.querySelector('[data-ok]');
+    const t0=performance.now();
+    const show=()=>{slot.textContent=typed||'?'; slot.classList.remove('bad'); okBtn.disabled=!typed};
+    const press=n=>{ if(locked) return; if(typed.length>=2) return; typed = typed==='0'?String(n):typed+n; show() };
+    const del=()=>{ if(locked) return; typed=typed.slice(0,-1); show() };
+    stage.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>press(b.dataset.n));
+    stage.querySelector('[data-d]').onclick=del;
+    okBtn.onclick=submit;
+    document.onkeydown=e=>{
+      if(/^[0-9]$/.test(e.key)) press(e.key);
+      else if(e.key==='Backspace') del();
+      else if(e.key==='Enter'&&typed) submit();
+    };
+    function submit(){
+      if(locked||!typed) return;
+      const v=+typed; tries++;
+      if(v===ans){
+        locked=true; slot.classList.add('ok');
+        const fast = tries===1 && performance.now()-t0<7000;
+        let pts = tries===1 ? 10 : 5; if(fast) pts+=5;
+        S.goals++; goalsHere++; res[i]=1;
+        if(tries===1){S.first++; S.streak++} else S.streak=0;
+        let t='Gól! 🥅', s=`+${pts} ⭐`;
+        if(tries===1&&S.streak>0&&S.streak%3===0){t='Hattrick! 🎩'; pts+=10; s=`3 góly v řadě · +${pts} ⭐`; S.hattrick=true}
+        else if(tries===2){t='Gól! 💪'; s=`Nevzdal ses · +${pts} ⭐`}
+        else if(fast){s=`Rychlá střela · +${pts} ⭐`}
+        addScore(pts);
+        msg.innerHTML=`<p class="msg-t ok">${t}</p><p class="msg-s">${s}</p>`;
+        i++; T(next,1300);
+      }else if(tries===1){
+        S.streak=0; slot.classList.add('bad');
+        msg.innerHTML=`<p class="msg-t warn">Skoro! Zkus znovu.</p>${hintFor(p,false)}`;
+        T(()=>{typed=''; show()},700);
+      }else{
+        locked=true; S.streak=0; res[i]=0;
+        slot.textContent=ans; slot.classList.remove('bad'); slot.classList.add('ok');
+        msg.innerHTML=`<p class="msg-t warn">Brankář chytil.</p>${hintFor(p,true)}<button class="btn sec" id="nx" style="min-width:200px">Další střela ›</button>`;
+        $('#nx').onclick=()=>{i++; next()};
+      }
+    }
+  }
+}
+
+/* ---------- Pohybová pauza ---------- */
+const MOVES=[
+  {ico:'🏋️',t:'Udělej 5 dřepů'},
+  {ico:'🦘',t:'10× poskoč na místě'},
+  {ico:'⛸️',t:'Bruslař: 6× přešlápni<br>ze strany na stranu'},
+  {ico:'🥅',t:'Brankářský postoj.<br>Vydrž 5 vteřin!'},
+  {ico:'⚽',t:'Hlavička: 5× vyskoč<br>a kývni hlavou'}
+];
+let lastMove=-1;
+function moveBreak(next){
+  plain(); header('Přestávka'); $('#title').textContent='Pohyb!';
+  let m; do{m=Math.floor(Math.random()*MOVES.length)}while(m===lastMove); lastMove=m;
+  stage.innerHTML=`<div class="move-ico">${MOVES[m].ico}</div><p class="big">${MOVES[m].t}</p><button class="btn" id="go" disabled>Hotovo za 5</button>`;
+  const b=$('#go'); let s=5;
+  const tick=()=>{s--; if(s>0){b.textContent=`Hotovo za ${s}`; T(tick,1000)} else {b.disabled=false; b.textContent='Hotovo ✔'}};
+  T(tick,1000);
+  b.onclick=next;
+}
+
+/* ---------- Start a konec ---------- */
+function reset(mode){
+  Object.assign(S,{score:0,mode,goals:0,total:0,first:0,streak:0,hattrick:false,periodGoals:[]});
+  $('#pts').textContent='0';
+}
+function startFull(){
+  reset('full'); const used=new Set();
+  const step=pi=>{
+    const tasks=buildPeriod(pi,used); S.total+=tasks.length;
+    intro(pi,()=>playPeriod(pi,tasks,()=> pi<2 ? moveBreak(()=>step(pi+1)) : end()));
+  };
+  step(0);
+}
+function startOne(pi){
+  reset('one'); const tasks=buildPeriod(pi,new Set()); S.total=tasks.length; S.onePi=pi;
+  intro(pi,()=>playPeriod(pi,tasks,end));
+}
+
+function start(){
+  plain(); header('');
+  $('#title').textContent='Přes desítku';
+  const best=+store('pres-desitku-rekord')||0;
+  stage.classList.add('scroll');
+  stage.innerHTML=`
+    <p class="big">Hokejový zápas s čísly 🏒</p>
+    <div class="periods">${PERIODS.map(p=>`<div class="pcard"><div class="emoji">${p.emoji}</div><b>${p.name}</b><span>${p.what}</span></div>`).join('')}</div>
+    <p class="small">3 třetiny po 6 příkladech. Mezi nimi pohyb.${best?`<br>Tvůj rekord: <b>${best} ⭐</b>`:''}</p>
+    <button class="btn" id="full">Začít zápas</button>
+    <div class="row">${PERIODS.map((p,i)=>`<button class="btn sec" data-p="${i}">Jen ${p.name}</button>`).join('')}</div>`;
+  $('#full').onclick=startFull;
+  stage.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>startOne(+b.dataset.p));
+}
+
+function end(){
+  plain(); header('Konec zápasu');
+  $('#title').textContent='Zápas skončil';
+  const badges=[
+    {e:'🏆',t:S.mode==='full'?'Celý zápas':'Třetina dohraná',on:true},
+    {e:'🎩',t:'Hattrick',on:S.hattrick},
+    {e:'🎯',t:'Bez chyby',on:S.first===S.total},
+    {e:'🥇',t:'Střelec zápasu',on:S.goals>=Math.ceil(S.total*.75)}
+  ];
+  let rec='';
+  if(S.mode==='full'){
+    const best=+store('pres-desitku-rekord')||0;
+    if(S.score>best){store('pres-desitku-rekord',String(S.score)); rec=best?'<p class="record">Nový rekord! 🎉</p>':''}
+  }
+  const head = S.goals===S.total ? 'Perfektní zápas! 🏆' : S.goals>=S.total*.75 ? 'Skvělý zápas! 🏆' : 'Dohrál jsi celý zápas! 👏';
+  stage.classList.add('scroll');
+  stage.innerHTML=`
+    <p class="big">${head}</p>
+    <p class="msg-t" style="color:var(--ink)">⭐ ${S.score}</p>
+    ${rec}
+    <div class="stats">🥅 Góly: <b>${S.goals} z ${S.total}</b> · napoprvé: <b>${S.first}</b></div>
+    <div class="badges">${badges.map(b=>`<div class="badge ${b.on?'':'off'}"><div class="emoji">${b.e}</div><b>${b.t}</b></div>`).join('')}</div>
+    <div class="row"><button class="btn" id="again">Hrát znovu</button><button class="btn sec" id="menu">Menu</button></div>`;
+  $('#again').onclick=S.mode==='full'?startFull:()=>startOne(S.onePi);
+  $('#menu').onclick=start;
+}
+
+start();
+})();
+</script>
+</body>
+</html>
