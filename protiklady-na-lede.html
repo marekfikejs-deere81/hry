@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-title" content="Hry">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Protiklady na ledě</title>
+<meta name="hra:predmet" content="Český jazyk">
+<meta name="hra:popis" content="Slova protikladná (×) a souznačná (=) – zápas na 3 třetiny">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Protiklady na ledě (Diviči 2, ČJ str. 65–71): 3 třetiny po 6 úlohách.
+   1. třetina protiklady (×), 2. třetina souznačná slova (=), 3. třetina rozhodni × / = / ani jedno.
+   Mezi třetinami pohybová přestávka. Výběr z možností, žádné psaní, předčítání, volitelné slabiky. */
+:root{
+  --paper:#F6F9FC; --grid:#DCE7F2; --ink:#1C2A3A; --muted:#5B6E82; --card:#FFFFFF; --line:#C9D7E6;
+  --red:#D23C3C; --red-soft:#FBE7E7; --blue:#2563B8; --blue-soft:#E3EDFA;
+  --ok:#1F8A4C; --ok-soft:#E3F4E8; --warn:#B45309; --warn-soft:#FDF0DC; --star:#F2B21B; --on-acc:#FFFFFF;
+  --f-display:"Fredoka",ui-rounded,system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#16202B; --grid:#223142; --ink:#EAF1F8; --muted:#9AAEC2; --card:#1C2836; --line:#2E4157;
+  --red:#FF7A7A; --red-soft:#4A2228; --blue:#6EA8FF; --blue-soft:#1D3150;
+  --ok:#4CD38A; --ok-soft:#173A28; --warn:#FFB454; --warn-soft:#3F2E14; --star:#FFC34D; --on-acc:#0F1B2B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#16202B; --grid:#223142; --ink:#EAF1F8; --muted:#9AAEC2; --card:#1C2836; --line:#2E4157;
+  --red:#FF7A7A; --red-soft:#4A2228; --blue:#6EA8FF; --blue-soft:#1D3150;
+  --ok:#4CD38A; --ok-soft:#173A28; --warn:#FFB454; --warn-soft:#3F2E14; --star:#FFC34D; --on-acc:#0F1B2B; color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;
+  color:var(--ink); font-family:var(--f-body); font-size:20px;
+  overflow:hidden; overscroll-behavior:none;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+}
+.app{
+  height:100%; display:flex; flex-direction:column; gap:14px; max-width:1100px; margin:0 auto;
+  padding-top:max(14px,env(safe-area-inset-top,0px)); padding-bottom:max(14px,env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+header{display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-height:52px}
+.back,.tool{min-width:52px;height:52px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);
+  font-size:24px;display:flex;align-items:center;justify-content:center;text-decoration:none;cursor:pointer;padding:0 12px;font-family:var(--f-display);font-weight:600}
+.tool{font-size:18px}
+.tool[aria-pressed="true"]{background:var(--blue-soft);border-color:var(--blue);color:var(--blue)}
+h1{font-family:var(--f-display); font-weight:700; font-size:clamp(22px,3vw,32px); margin:0}
+.chip{font-family:var(--f-display); font-weight:600; font-size:18px; background:var(--red-soft); color:var(--red); padding:6px 14px; border-radius:999px}
+.chip:empty{display:none}
+.right{margin-left:auto; display:flex; align-items:center; gap:14px}
+.dots{display:flex; gap:6px}
+.dot{width:20px;height:20px;border-radius:50%;border:2.5px solid var(--muted)}
+.dot.ok{background:var(--ok);border-color:var(--ok)}
+.dot.miss{background:var(--warn);border-color:var(--warn)}
+.dot.cur{border-color:var(--ink);border-width:4px}
+.score{font-family:var(--f-display); font-weight:700; font-size:26px; font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:6px}
+.score.pop{animation:pop .3s}
+@keyframes pop{50%{transform:scale(1.25)}}
+
+.stage{
+  flex:1; min-height:0; overflow:auto;
+  background:var(--card); border:3px solid var(--line); border-radius:28px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+  padding:24px; text-align:center;
+}
+.big{font-family:var(--f-display); font-weight:700; font-size:clamp(30px,5vw,48px); line-height:1.2; margin:0}
+.small{font-size:clamp(20px,2.6vw,26px); color:var(--muted); line-height:1.5; margin:0; max-width:640px}
+.btn{
+  min-height:76px; min-width:240px; padding:0 36px; border:none; border-radius:22px;
+  background:var(--blue); color:var(--on-acc); font-family:var(--f-display); font-weight:700; font-size:30px; cursor:pointer;
+  box-shadow:0 5px 0 rgba(0,0,0,.18); transition:transform .08s;
+}
+.btn:active{transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.btn:disabled{opacity:.4}
+.btn.sec{background:var(--card); color:var(--ink); border:3px solid var(--line); box-shadow:none; font-size:22px; min-height:64px; min-width:0; padding:0 22px}
+.btn:focus-visible,.opt:focus-visible,.tool:focus-visible{outline:4px solid var(--ink); outline-offset:3px}
+.row{display:flex; gap:14px; flex-wrap:wrap; justify-content:center}
+
+/* Úloha */
+.instr{font-family:var(--f-display); font-weight:600; font-size:clamp(24px,3.4vw,34px); margin:0; display:flex; align-items:center; gap:12px; justify-content:center}
+.spk{width:60px;height:60px;border-radius:50%;border:3px solid var(--line);background:var(--card);font-size:28px;cursor:pointer;flex:none;padding:0}
+.spk.talking{border-color:var(--blue);background:var(--blue-soft)}
+.pair{display:flex; align-items:center; justify-content:center; gap:clamp(12px,2.5vw,28px); flex-wrap:wrap}
+.word{font-family:var(--f-display); font-weight:700; font-size:clamp(44px,7.5vw,76px); line-height:1.1;
+  padding:12px 26px; border-radius:22px; background:var(--paper); border:3px solid var(--line); min-width:150px}
+.sign{font-family:var(--f-display); font-weight:700; font-size:clamp(48px,7vw,72px); color:var(--red); line-height:1}
+.sign.eq{color:var(--blue)}
+.slot{min-width:180px; color:var(--muted); border-style:dashed}
+.slot.fill-ok{color:var(--ok); border-style:solid; border-color:var(--ok); background:var(--ok-soft)}
+.emo{font-size:clamp(40px,6vw,60px); line-height:1}
+.opts{display:grid; gap:16px; width:min(100%,900px); grid-template-columns:repeat(var(--n),1fr)}
+.opt{min-height:96px; border-radius:24px; border:4px solid var(--line); background:var(--card); color:var(--ink);
+  font-family:var(--f-display); font-weight:700; font-size:clamp(28px,4vw,40px); cursor:pointer; padding:8px 14px;
+  box-shadow:0 5px 0 var(--line); transition:transform .08s}
+.opt:active{transform:translateY(3px); box-shadow:0 2px 0 var(--line)}
+.opt.ok{border-color:var(--ok); background:var(--ok-soft); color:var(--ok); box-shadow:0 5px 0 var(--ok)}
+.opt.no{border-color:var(--warn); background:var(--warn-soft); color:var(--warn); box-shadow:none; opacity:.85}
+.opt.dim{opacity:.35}
+.opt small{display:block; font-size:.55em; font-weight:600; color:var(--muted)}
+.fb{min-height:64px; display:flex; flex-direction:column; align-items:center; gap:6px}
+.fb-t{font-family:var(--f-display); font-weight:700; font-size:clamp(30px,4.5vw,44px); margin:0}
+.fb-s{font-size:clamp(20px,2.6vw,26px); color:var(--muted); margin:0; line-height:1.4}
+.fb.ok .fb-t{color:var(--ok)} .fb.warn .fb-t{color:var(--warn)}
+.sy{color:var(--red); padding:0 .06em}
+
+/* Intro, přestávka, konec */
+.thirds{display:flex; gap:14px; flex-wrap:wrap; justify-content:center}
+.tcard{display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 18px; min-width:170px;
+  border:3px solid var(--line); border-radius:20px; background:var(--card)}
+.tcard b{font-family:var(--f-display); font-size:22px}
+.tcard span{font-size:18px; color:var(--muted)}
+.tcard .sign{font-size:40px}
+.example{display:flex; align-items:center; gap:18px; flex-wrap:wrap; justify-content:center}
+.example .word{font-size:clamp(36px,6vw,56px)}
+.move-ico{font-size:96px; line-height:1}
+.badges{display:flex; gap:12px; flex-wrap:wrap; justify-content:center}
+.badge{display:flex; flex-direction:column; align-items:center; gap:4px; width:140px; padding:12px 8px;
+  border:3px solid var(--star); border-radius:20px; background:var(--card)}
+.badge b{font-family:var(--f-display); font-size:17px; line-height:1.15}
+.badge .emoji{font-size:40px; line-height:1}
+.board{display:flex; gap:12px; flex-wrap:wrap; justify-content:center}
+.board div{padding:10px 16px; border:3px solid var(--line); border-radius:16px; font-size:20px}
+.board b{font-family:var(--f-display); font-size:26px; display:block}
+@media (max-height:700px){.opt{min-height:80px}.word{padding:8px 20px}.stage{gap:14px}}
+@media (max-width:640px){.opts{grid-template-columns:1fr}.dots{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a class="back" href="index.html" aria-label="Zpět na hry">←</a>
+    <h1>Protiklady na ledě</h1>
+    <span class="chip" id="chip"></span>
+    <div class="right">
+      <button class="tool" id="sylBtn" aria-pressed="false" aria-label="Rozdělit dlouhá slova na slabiky">sla·bi·ky</button>
+      <div class="dots" id="dots"></div>
+      <div class="score" id="score" aria-label="Góly">🏒 <span id="scoreN">0</span></div>
+    </div>
+  </header>
+  <main class="stage" id="stage" aria-live="polite"></main>
+</div>
+
+<script>
+'use strict';
+/* ================= Data =================
+   Pomlčka = hranice slabik (zobrazí se jen v režimu „slabiky", jinak se maže).
+   Prvních N položek v každém seznamu je snadných – jimi se začíná. */
+const OPP=[ // [slovo, opak, [záludné možnosti], emoji]
+ ['velký','malý',['ob-rov-ský','vysoký'],'🐘'],['den','noc',['ráno','slunce'],'☀️'],
+ ['nahoře','dole',['vpravo','u-pro-střed'],'⬆️'],['plný','prázdný',['velký','těžký'],'🥛'],
+ ['rychlý','pomalý',['silný','veselý'],'⚡'],['lehký','těžký',['malý','modrý'],'🪶'],
+ ['vyhrát','prohrát',['hrát','střílet'],'🏆'],['veselý','smutný',['ra-dost-ný','hodný'],'😀'],
+ ['vysoký','nízký',['hluboký','velký'],'🦒'],['teplý','studený',['horký','mokrý'],'🔥'],
+ ['kluk','holka',['hoch','táta'],'👦'],['ráno','večer',['den','oběd'],'🌅'],
+ // těžší
+ ['o-te-vře-ný','za-vře-ný',['velký','prázdný'],'🚪'],['čistý','špi-na-vý',['nový','bílý'],'🧼'],
+ ['tvrdý','měkký',['pevný','těžký'],'🪨'],['blízko','daleko',['vedle','dole'],'📍'],
+ ['začátek','konec',['start','cesta'],'🏁'],['mokrý','suchý',['studený','čistý'],'💧'],
+ ['dlouhý','krátký',['vysoký','tenký'],'📏'],['světlý','tmavý',['bílý','ba-rev-ný'],'💡'],
+ ['bohatý','chudý',['šťastný','starý'],'💰'],['všechno','nic',['hodně','něco'],null],
+ ['útok','obrana',['gól','hra'],'🏒'],['vzít','dát',['nést','chytit'],'✋'],
+ ['přijít','odejít',['jít','běžet'],'🚶'],['do-pře-du','do-za-du',['rovně','nahoru'],'➡️'],
+ ['starý','mladý',['velký','moudrý'],'👴'],['sladký','kyselý',['dobrý','teplý'],'🍬']
+];
+const OPP_EASY=12;
+const SYN=[ // [slovo, slovo podobného významu, [záludné možnosti], emoji]
+ ['kluk','hoch',['holka','táta'],'👦'],['pes','hafan',['kočka','kotě'],'🐕'],
+ ['míč','balón',['puk','ko-pač-ka'],'⚽'],['brankář','gólman',['ú-toč-ník','roz-hod-čí'],'🥅'],
+ ['mrak','oblak',['slunce','déšť'],'☁️'],['hezký','pěkný',['ošklivý','velký'],'🌸'],
+ ['skákal','hopsal',['ležel','spal'],'🐸'],['auto','vůz',['kolo','vlak'],'🚗'],
+ ['kamarád','přítel',['soused','soupeř'],'🤝'],['vrata','brána',['okno','zeď'],'🚪'],
+ // těžší
+ ['bystrý','chytrý',['pomalý','líný'],'🧠'],['malý','drobný',['velký','vysoký'],'🐭'],
+ ['ho-lín-ky','gumáky',['sandály','po-nož-ky'],'🥾'],['chlad-nič-ka','led-nič-ka',['trouba','pračka'],'🧊'],
+ ['běžel','utíkal',['stál','seděl'],'🏃'],['kou-ka-li','dí-va-li',['spali','zpí-va-li'],'👀'],
+ ['povídat','mluvit',['mlčet','spát'],'💬'],['zvláštní','podivný',['o-by-čej-ný','veselý'],'🤔'],
+ ['veselý','ra-dost-ný',['smutný','zlý'],'😀'],['o-hro-me-ný','pře-kva-pe-ný',['u-na-ve-ný','smutný'],'😮'],
+ ['na-ta-ho-vat','pro-dlu-žo-vat',['zkra-co-vat','za-va-zo-vat'],'↔️'],['boty','obuv',['po-nož-ky','čepice'],'👟']
+];
+const SYN_EASY=10;
+const CLS=[ // [slovo, slovo, 'x' | '=' | '0', vysvětlení u „ani jedno"]
+ ['vysoký','nízký','x'],['temný','světlý','x'],['starý','mladý','x'],['vyhrát','prohrát','x'],
+ ['sladký','kyselý','x'],['před','za','x'],['mokrý','suchý','x'],['těžký','lehký','x'],['ráno','večer','x'],
+ ['kluk','hoch','='],['pes','hafan','='],['mrak','oblak','='],['brankář','gólman','='],
+ ['hezký','pěkný','='],['míč','balón','='],['skákal','hopsal','='],['vrata','brána','='],
+ ['stůl','židle','0','Obojí je nábytek. Není to opak ani totéž.'],
+ ['pes','kočka','0','Obojí jsou zvířata. Není to opak ani totéž.'],
+ ['kámen','jablko','0','Tahle slova spolu nesouvisí.'],
+ ['konec','noc','0','Jen se rýmují! Opak slova konec je začátek.'],
+ ['noc','tma','0','V noci je tma, ale noc a tma není totéž.'],
+ ['růžový','červený','0','Jsou to dvě barvy. Není to opak.'],
+ ['malý','nízký','0','Opak slova malý je velký.'],
+ ['puk','hokejka','0','Obojí patří k hokeji. Není to opak ani totéž.'],
+ ['tmavý','hnědý','0','Opak slova tmavý je světlý.'],
+ ['stát','mávat','0','Tahle slova spolu nesouvisí.']
+];
+const MOVES=[
+ ['🏋️','Udělej 5 dřepů.'],
+ ['🥅','Skoč 10× jako brankář – roznožit, snožit.'],
+ ['🔄','Kruž rukama 5× DOPŘEDU a 5× DOZADU.','To je taky protiklad!'],
+ ['🦩','Stůj na jedné noze. Napočítej do 10.','Pak na druhé noze.'],
+ ['⬆️','Natáhni se NAHORU, pak se dotkni rukama DOLE.','Opakuj 5×. Nahoře × dole!']
+];
+const CHEER=['Gól!','Super střela!','Přesně tak!','Paráda!','Skvěle!','Trefa!'];
+
+/* ================= Pomocné ================= */
+const rnd=n=>Math.floor(Math.random()*n);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const plain=s=>s.replace(/-/g,'');
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let syl=store.get('pnl-syl',false);
+const W=s=>syl?esc(s).replace(/-/g,'<span class="sy">·</span>'):esc(plain(s));
+const $=id=>document.getElementById(id);
+const stage=$('stage');
+
+/* ================= Předčítání (čeština) ================= */
+const canSpeak='speechSynthesis' in window;
+let voice=null;
+function pickVoice(){if(!canSpeak)return;const v=speechSynthesis.getVoices();voice=v.find(x=>/^cs/i.test(x.lang)&&/Zuzana/i.test(x.name))||v.find(x=>/^cs/i.test(x.lang))||null}
+if(canSpeak){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function say(parts,btn){
+  if(!canSpeak)return; if(!voice)pickVoice(); speechSynthesis.cancel();
+  parts=(Array.isArray(parts)?parts:[parts]).map(plain);
+  parts.forEach((t,k)=>{
+    const u=new SpeechSynthesisUtterance(t); u.lang='cs-CZ'; if(voice)u.voice=voice; u.rate=.85;
+    if(btn&&k===0)u.onstart=()=>btn.classList.add('talking');
+    if(k===parts.length-1)u.onend=u.onerror=()=>document.querySelectorAll('.talking').forEach(b=>b.classList.remove('talking'));
+    speechSynthesis.speak(u);
+  });
+}
+const spk=()=>canSpeak?'<button class="spk" id="spk" aria-label="Přečti mi to">🔊</button>':'';
+
+/* ================= Sestavení zápasu ================= */
+function makeChoice(kind,row,hard){
+  const [a,ans,dis,emo]=row;
+  const opts=shuffle([ans,...(hard?dis:[dis[rnd(2)]])]);
+  return {kind,a,ans,opts,emo};
+}
+function buildRound(kind,pool,easyN){
+  const easy=shuffle(pool.slice(0,easyN)).slice(0,3);
+  const rest=shuffle(pool.filter(r=>!easy.includes(r))).slice(0,3);
+  return [...easy.map(r=>makeChoice(kind,r,false)),...rest.map(r=>makeChoice(kind,r,true))];
+}
+function clsItem(r,three){return {kind:'cls',a:r[0],b:r[1],ans:r[2],note:r[3]||'',three}}
+function buildCls(){
+  const xs=shuffle(CLS.filter(r=>r[2]==='x')), eqs=shuffle(CLS.filter(r=>r[2]==='=')), zs=shuffle(CLS.filter(r=>r[2]==='0'));
+  const first=shuffle([xs[0],eqs[0],(rnd(2)?xs[1]:eqs[1])]).map(r=>clsItem(r,false));
+  const second=shuffle([zs[0],zs[1],(rnd(2)?xs[2]:eqs[2])]).map(r=>clsItem(r,true));
+  return [...first,...second];
+}
+const ROUNDS=[
+ {name:'1. třetina',title:'Protiklady',sign:'×',desc:'Slova OPAČNÉHO významu'},
+ {name:'2. třetina',title:'Souznačná slova',sign:'=',desc:'Slova PODOBNÉHO významu'},
+ {name:'3. třetina',title:'Rozhodni!',sign:'?',desc:'Opak, podobné, nebo ani jedno?'}
+];
+let G=null;
+function newGame(){
+  G={rounds:[buildRound('opp',OPP,OPP_EASY),buildRound('syn',SYN,SYN_EASY),buildCls()],r:0,i:0,score:0,
+     res:[[],[],[]],missed:[],streak:0,bestStreak:0,practice:false};
+  showIntro();
+}
+function newPractice(){
+  const items=G.missed.map(m=>m.kind==='cls'?{...m,three:true}:{...m,opts:shuffle(m.opts)});
+  G={rounds:[shuffle(items)],r:0,i:0,score:0,res:[[]],missed:[],streak:0,bestStreak:0,practice:true};
+  showTask();
+}
+
+/* ================= Hlavička ================= */
+function head(){
+  $('chip').textContent=G?(G.practice?'Opravná třetina':ROUNDS[G.r].name):'';
+  const items=G?G.rounds[G.r]:[];
+  $('dots').innerHTML=items.map((_,k)=>{
+    const r=G.res[G.r][k];return `<span class="dot ${r===true?'ok':r===false?'miss':''} ${k===G.i&&r===undefined?'cur':''}"></span>`}).join('');
+  $('scoreN').textContent=G?G.score:0;
+}
+$('sylBtn').setAttribute('aria-pressed',syl);
+$('sylBtn').onclick=()=>{syl=!syl;store.set('pnl-syl',syl);$('sylBtn').setAttribute('aria-pressed',syl);if(redraw)redraw()};
+let redraw=null;
+
+/* ================= Obrazovky ================= */
+function showStart(){
+  G=null; head(); redraw=showStart;
+  const best=store.get('pnl-best',null);
+  stage.innerHTML=`
+    <p class="big">Hokejový zápas se slovy 🏒</p>
+    <div class="thirds">${ROUNDS.map(r=>`<div class="tcard"><span class="sign ${r.sign==='='?'eq':''}">${r.sign}</span><b>${r.title}</b><span>${r.name}</span></div>`).join('')}</div>
+    <p class="small">3 třetiny. Každá má 6 střel.<br>Mezi třetinami je přestávka.</p>
+    ${best!=null?`<p class="small">Tvůj rekord: <b>${best} gólů</b> z 18</p>`:''}
+    <button class="btn" id="go">Začít zápas</button>`;
+  $('go').onclick=newGame;
+}
+
+function showIntro(){
+  head(); redraw=showIntro;
+  const r=G.r; let ex, text, speech;
+  if(r===0){ex=`<span class="emo">🐘</span><span class="word">velký</span><span class="sign">×</span><span class="word">malý</span><span class="emo">🐭</span>`;
+    text='Slova <b>opačného</b> významu jsou <b>protiklady</b>.<br>Mezi ně píšeme znak ×.';speech='Protiklady. Velký a malý. Slova opačného významu. Mezi ně píšeme křížek.'}
+  else if(r===1){ex=`<span class="emo">👦</span><span class="word">kluk</span><span class="sign eq">=</span><span class="word">hoch</span><span class="emo">👦</span>`;
+    text='Slova <b>podobného</b> významu jsou <b>souznačná</b>.<br>Mezi ně píšeme znak =.';speech='Souznačná slova. Kluk a hoch. Slova podobného významu. Mezi ně píšeme rovná se.'}
+  else{ex=`<span class="word">stůl</span><span class="sign" style="color:var(--muted)">?</span><span class="word">židle</span>`;
+    text='Někdy to <b>není</b> opak ani podobné slovo.<br>Pak vyber <b>ANI JEDNO</b>.';speech='Pozor! Někdy to není opak ani podobné slovo. Stůl a židle. Pak vyber ani jedno.'}
+  stage.innerHTML=`
+    <p class="big">${ROUNDS[r].name}: ${ROUNDS[r].title}</p>
+    <div class="example">${ex}</div>
+    <p class="small">${text}</p>
+    <div class="row">${spk()}<button class="btn" id="go">Na led!</button></div>`;
+  if($('spk'))$('spk').onclick=e=>say(speech,e.currentTarget);
+  $('go').onclick=showTask;
+}
+
+function showTask(){
+  head(); const t=G.rounds[G.r][G.i]; let answered=false; redraw=null;
+  let html, speech, opts;
+  if(t.kind==='cls'){
+    opts=[['x','×','OPAK'],['=','=','PODOBNÉ']]; if(t.three)opts.push(['0','–','ANI JEDNO']);
+    html=`<p class="instr">${spk()}Jaká jsou to slova?</p>
+      <div class="pair"><span class="word">${W(t.a)}</span><span class="sign" id="mid" style="color:var(--muted)">?</span><span class="word">${W(t.b)}</span></div>
+      <div class="opts" style="--n:${opts.length}">${opts.map(o=>`<button class="opt" data-v="${o[0]}">${o[1]}<small>${o[2]}</small></button>`).join('')}</div>`;
+    speech=['Jaká jsou to slova?',t.a+', '+t.b,t.three?'Opak, podobné, nebo ani jedno?':'Opak, nebo podobné?'];
+  }else{
+    const opp=t.kind==='opp';
+    html=`<p class="instr">${spk()}${opp?'Najdi OPAK':'Najdi slovo s PODOBNÝM významem'}</p>
+      <div class="pair">${t.emo?`<span class="emo">${t.emo}</span>`:''}<span class="word">${W(t.a)}</span><span class="sign ${opp?'':'eq'}">${opp?'×':'='}</span><span class="word slot" id="slot">?</span></div>
+      <div class="opts" style="--n:${t.opts.length}">${t.opts.map(o=>`<button class="opt" data-v="${esc(o)}">${W(o)}</button>`).join('')}</div>`;
+    speech=[opp?'Najdi opak slova':'Najdi slovo s podobným významem',t.a,'Můžeš vybrat:',t.opts.join(', ')];
+  }
+  stage.innerHTML=html+`<div class="fb" id="fb"></div>`;
+  if($('spk'))$('spk').onclick=e=>say(speech,e.currentTarget);
+  stage.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    if(answered)return; answered=true;
+    const v=b.dataset.v, ok=v===t.ans;
+    G.res[G.r][G.i]=ok;
+    stage.querySelectorAll('.opt').forEach(x=>{if(x.dataset.v===t.ans)x.classList.add('ok');else if(x!==b)x.classList.add('dim')});
+    if(!ok)b.classList.add('no');
+    const fb=$('fb');
+    if(t.kind!=='cls'){const s=$('slot');s.innerHTML=W(t.ans);s.classList.add('fill-ok')}
+    else{const m=$('mid');m.textContent={x:'×','=':'=','0':'–'}[t.ans];m.style.color=t.ans==='x'?'var(--red)':t.ans==='='?'var(--blue)':'var(--muted)'}
+    if(ok){
+      G.score++; G.streak++; G.bestStreak=Math.max(G.bestStreak,G.streak);
+      const sc=$('score');sc.classList.remove('pop');void sc.offsetWidth;sc.classList.add('pop');
+      const extra=G.streak===3?'Hattrick! 3 góly v řadě!':(t.kind==='cls'&&t.note?t.note:'');
+      fb.className='fb ok'; fb.innerHTML=`<p class="fb-t">${CHEER[rnd(CHEER.length)]} 🥅</p>${extra?`<p class="fb-s">${esc(extra)}</p>`:''}`;
+      head(); setTimeout(next,extra?2200:1300);
+    }else{
+      G.streak=0; G.missed.push(t);
+      let why;
+      if(t.kind==='opp')why=`Opak slova <b>${W(t.a)}</b> je <b>${W(t.ans)}</b>.`;
+      else if(t.kind==='syn')why=`<b>${W(t.a)}</b> = <b>${W(t.ans)}</b> – znamená to skoro totéž.`;
+      else why=t.ans==='x'?'Je to OPAK – znamenají to opačně.':t.ans==='='?'Znamenají skoro TOTÉŽ.':esc(t.note);
+      fb.className='fb warn'; fb.innerHTML=`<p class="fb-t">Skoro! Nevadí.</p><p class="fb-s">${why}</p><button class="btn sec" id="nx">Dál ➜</button>`;
+      head(); $('nx').onclick=next;
+    }
+  });
+}
+
+function next(){
+  G.i++;
+  if(G.i<G.rounds[G.r].length){showTask();return}
+  if(G.practice){showEnd();return}
+  if(G.r<2){showBreak();return}
+  showEnd();
+}
+
+function showBreak(){
+  head(); redraw=null;
+  const done=G.res[G.r].filter(Boolean).length;
+  const mv=MOVES[rnd(MOVES.length)];
+  stage.innerHTML=`
+    <p class="big">Konec ${G.r+1}. třetiny! ${done} z 6 gólů</p>
+    <p class="small">Přestávka – protáhni se:</p>
+    <div class="move-ico">${mv[0]}</div>
+    <p class="big" style="font-size:clamp(26px,4vw,40px)">${mv[1]}</p>
+    ${mv[2]?`<p class="small">${mv[2]}</p>`:''}
+    <button class="btn" id="go" disabled>Hotovo ✓</button>`;
+  setTimeout(()=>{const b=$('go');if(b)b.disabled=false},5000);
+  $('go').onclick=()=>{G.r++;G.i=0;showIntro()};
+}
+
+function showEnd(){
+  redraw=null; $('chip').textContent='Konec zápasu'; $('dots').innerHTML='';
+  const total=G.rounds.reduce((s,r)=>s+r.length,0);
+  let badges=[['🏒','Dohrál jsi zápas!']];
+  if(!G.practice){
+    const per=G.res.map(r=>r.filter(Boolean).length);
+    if(per[0]>=5)badges.push(['×','Mistr protikladů']);
+    if(per[1]>=5)badges.push(['=','Mistr souznačných']);
+    if(per[2]>=5)badges.push(['🔍','Slovní detektiv']);
+    if(G.bestStreak>=3)badges.push(['🎩','Hattrick']);
+    if(G.score===total)badges.push(['⭐','Čisté konto']);
+    const best=store.get('pnl-best',0); if(G.score>best)store.set('pnl-best',G.score);
+  }else if(G.score===total)badges.push(['✅','Všechno opraveno']);
+  const board=G.practice?'':`<div class="board">${ROUNDS.map((r,k)=>`<div><b>${G.res[k].filter(Boolean).length} / 6</b>${r.name}</div>`).join('')}</div>`;
+  stage.innerHTML=`
+    <p class="big">${G.practice?'Opravná třetina hotová!':'Zápas skončil!'} 🎉</p>
+    <p class="big" style="font-size:clamp(26px,4vw,38px)">Dal jsi ${G.score} ${G.score===1?'gól':G.score>=2&&G.score<=4?'góly':'gólů'} z ${total}</p>
+    ${board}
+    <div class="badges">${badges.map(b=>`<div class="badge"><span class="emoji">${b[0]}</span><b>${b[1]}</b></div>`).join('')}</div>
+    <div class="row">
+      ${G.missed.length?`<button class="btn" id="fix">Opravit chyby (${G.missed.length})</button>`:''}
+      <button class="btn ${G.missed.length?'sec':''}" id="again">Hrát znovu</button>
+      <a class="btn sec" href="index.html" style="display:inline-flex;align-items:center;text-decoration:none">Jiná hra</a>
+    </div>`;
+  if($('fix'))$('fix').onclick=newPractice;
+  $('again').onclick=newGame;
+}
+
+showStart();
+</script>
+</body>
+</html>
