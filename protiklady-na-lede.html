@@ -34,6 +34,7 @@
 
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%;margin:0}
+body{height:100dvh}
 body{
   background-color:var(--paper);
   background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
@@ -44,7 +45,7 @@ body{
   -webkit-tap-highlight-color:transparent; touch-action:manipulation;
 }
 .app{
-  height:100%; display:flex; flex-direction:column; gap:14px; max-width:1100px; margin:0 auto;
+  height:100%; height:100dvh; display:flex; flex-direction:column; gap:14px; max-width:1100px; margin:0 auto;
   padding-top:max(14px,env(safe-area-inset-top,0px)); padding-bottom:max(14px,env(safe-area-inset-bottom,0px));
   padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
 }
@@ -67,11 +68,13 @@ h1{font-family:var(--f-display); font-weight:700; font-size:clamp(22px,3vw,32px)
 @keyframes pop{50%{transform:scale(1.25)}}
 
 .stage{
-  flex:1; min-height:0; overflow:auto;
+  flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
   background:var(--card); border:3px solid var(--line); border-radius:28px;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:22px;
   padding:24px; text-align:center;
 }
+.stage>:first-child{margin-top:auto}.stage>:last-child{margin-bottom:auto}
+.prog{display:none; font-family:var(--f-display); font-weight:700; font-size:20px; color:var(--muted); font-variant-numeric:tabular-nums}
 .big{font-family:var(--f-display); font-weight:700; font-size:clamp(30px,5vw,48px); line-height:1.2; margin:0}
 .small{font-size:clamp(20px,2.6vw,26px); color:var(--muted); line-height:1.5; margin:0; max-width:640px}
 .btn{
@@ -131,7 +134,84 @@ h1{font-family:var(--f-display); font-weight:700; font-size:clamp(22px,3vw,32px)
 .board div{padding:10px 16px; border:3px solid var(--line); border-radius:16px; font-size:20px}
 .board b{font-family:var(--f-display); font-size:26px; display:block}
 @media (max-height:700px){.opt{min-height:80px}.word{padding:8px 20px}.stage{gap:14px}}
-@media (max-width:640px){.opts{grid-template-columns:1fr}.dots{display:none}}
+
+/* ===== Mobilní telefon na výšku ===== */
+@media (max-width:640px){
+  .app{gap:10px; padding-top:max(10px,env(safe-area-inset-top,0px)); padding-bottom:max(10px,env(safe-area-inset-bottom,0px));
+    padding-left:max(10px,env(safe-area-inset-left,0px)); padding-right:max(10px,env(safe-area-inset-right,0px))}
+  header{flex-wrap:nowrap; gap:8px; min-height:48px}
+  h1{display:none}
+  .back,.tool{height:48px; min-width:48px; border-radius:12px}
+  .tool{font-size:15px; padding:0 8px}
+  .chip{font-size:16px; padding:5px 10px; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis}
+  .right{flex:none}
+  .right{gap:10px}
+  .dots{display:none} .prog{display:block}
+  .score{font-size:22px}
+  .stage{padding:16px 14px; gap:14px; border-radius:22px}
+  .big{font-size:28px}
+  .small{font-size:19px}
+  .btn{min-height:64px; min-width:0; width:100%; max-width:340px; font-size:26px; padding:0 20px}
+  .btn.sec{font-size:20px; min-height:56px}
+  .row{width:100%; gap:10px}
+  .instr{font-size:21px; gap:10px; text-align:left}
+  .spk{width:52px; height:52px; font-size:24px}
+  /* dvojice slov pod sebou: slovo / znak / otazník */
+  .pair{flex-direction:column; gap:4px; flex-wrap:nowrap; width:100%}
+  .pair .emo{display:none}
+  .word{font-size:clamp(32px,10vw,44px); padding:8px 18px; min-width:0; max-width:100%; overflow-wrap:anywhere; border-radius:18px}
+  .slot{min-width:150px}
+  .sign{font-size:38px}
+  .opts{grid-template-columns:1fr; gap:10px}
+  .opts.cls{grid-template-columns:repeat(var(--n),1fr)}
+  .opt{min-height:66px; font-size:28px; border-radius:18px; border-width:3px}
+  .opts.cls .opt{min-height:84px; font-size:36px; padding:6px 4px}
+  .opt small{font-size:14px}
+  .fb{min-height:0}
+  .fb-t{font-size:28px} .fb-s{font-size:19px}
+  .fb .btn.sec{width:auto; min-width:160px}
+  /* úvod a konec */
+  .thirds{flex-wrap:nowrap; gap:8px; width:100%}
+  .tcard{min-width:0; flex:1; padding:10px 6px; border-radius:16px}
+  .tcard b{font-size:16px} .tcard span{font-size:14px} .tcard .sign{font-size:30px}
+  .example{gap:8px; flex-wrap:nowrap}
+  .example .emo{display:none}
+  .example .word{font-size:clamp(28px,9vw,40px); padding:6px 12px}
+  .example .sign{font-size:34px}
+  .move-ico{font-size:72px}
+  .badges{gap:8px} .badge{width:96px; padding:8px 4px; border-radius:16px} .badge b{font-size:14px} .badge .emoji{font-size:30px}
+  .board{gap:8px; flex-wrap:nowrap} .board div{padding:6px 10px; font-size:15px} .board b{font-size:22px}
+}
+/* ===== Malý telefon (např. iPhone SE) ===== */
+@media (max-width:640px) and (max-height:700px){
+  .stage{gap:10px; padding:12px}
+  .word{font-size:32px; padding:4px 16px}
+  .sign{font-size:30px}
+  .opt{min-height:56px; font-size:25px}
+  .opts.cls .opt{min-height:72px; font-size:30px}
+  .fb-t{font-size:24px} .fb-s{font-size:17px}
+  .badge{width:88px} .badge .emoji{font-size:26px}
+  .big{font-size:25px}
+}
+/* ===== Mobilní telefon na šířku (nízká obrazovka) ===== */
+@media (max-height:500px) and (min-width:641px){
+  .app{gap:8px; padding-top:max(8px,env(safe-area-inset-top,0px)); padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+  header{min-height:44px} h1{font-size:22px}
+  .back,.tool{height:44px; min-width:44px}
+  .dot{width:16px;height:16px}
+  .stage{padding:12px 16px; gap:10px; border-radius:20px}
+  .big{font-size:26px} .small{font-size:18px; line-height:1.35}
+  .instr{font-size:22px} .spk{width:48px;height:48px;font-size:22px}
+  .word{font-size:38px; padding:4px 18px; border-radius:16px}
+  .sign{font-size:40px} .emo{font-size:36px}
+  .opt{min-height:62px; font-size:28px; border-radius:18px}
+  .opt small{font-size:13px}
+  .fb{min-height:0} .fb-t{font-size:26px} .fb-s{font-size:18px}
+  .btn{min-height:58px; font-size:24px} .btn.sec{min-height:50px; font-size:19px}
+  .move-ico{font-size:56px}
+  .tcard{padding:8px 14px} .badge{width:110px; padding:6px} .badge .emoji{font-size:28px}
+  .example .word{font-size:34px}
+}
 </style>
 </head>
 <body>
@@ -143,6 +223,7 @@ h1{font-family:var(--f-display); font-weight:700; font-size:clamp(22px,3vw,32px)
     <div class="right">
       <button class="tool" id="sylBtn" aria-pressed="false" aria-label="Rozdělit dlouhá slova na slabiky">sla·bi·ky</button>
       <div class="dots" id="dots"></div>
+      <span class="prog" id="prog"></span>
       <div class="score" id="score" aria-label="Góly">🏒 <span id="scoreN">0</span></div>
     </div>
   </header>
@@ -279,6 +360,8 @@ function newPractice(){
 function head(){
   $('chip').textContent=G?(G.practice?'Opravná třetina':ROUNDS[G.r].name):'';
   const items=G?G.rounds[G.r]:[];
+  const doneN=G?G.res[G.r].filter(x=>x!==undefined).length:0;
+  $('prog').textContent=items.length?`${Math.min(doneN+ (G.res[G.r][G.i]===undefined?1:0),items.length)}/${items.length}`:'';
   $('dots').innerHTML=items.map((_,k)=>{
     const r=G.res[G.r][k];return `<span class="dot ${r===true?'ok':r===false?'miss':''} ${k===G.i&&r===undefined?'cur':''}"></span>`}).join('');
   $('scoreN').textContent=G?G.score:0;
@@ -325,7 +408,7 @@ function showTask(){
     opts=[['x','×','OPAK'],['=','=','PODOBNÉ']]; if(t.three)opts.push(['0','–','ANI JEDNO']);
     html=`<p class="instr">${spk()}Jaká jsou to slova?</p>
       <div class="pair"><span class="word">${W(t.a)}</span><span class="sign" id="mid" style="color:var(--muted)">?</span><span class="word">${W(t.b)}</span></div>
-      <div class="opts" style="--n:${opts.length}">${opts.map(o=>`<button class="opt" data-v="${o[0]}">${o[1]}<small>${o[2]}</small></button>`).join('')}</div>`;
+      <div class="opts cls" style="--n:${opts.length}">${opts.map(o=>`<button class="opt" data-v="${o[0]}">${o[1]}<small>${o[2]}</small></button>`).join('')}</div>`;
     speech=['Jaká jsou to slova?',t.a+', '+t.b,t.three?'Opak, podobné, nebo ani jedno?':'Opak, nebo podobné?'];
   }else{
     const opp=t.kind==='opp';
@@ -387,7 +470,7 @@ function showBreak(){
 }
 
 function showEnd(){
-  redraw=null; $('chip').textContent='Konec zápasu'; $('dots').innerHTML='';
+  redraw=null; $('chip').textContent='Konec'; $('dots').innerHTML=''; $('prog').textContent='';
   const total=G.rounds.reduce((s,r)=>s+r.length,0);
   let badges=[['🏒','Dohrál jsi zápas!']];
   if(!G.practice){
@@ -408,7 +491,7 @@ function showEnd(){
     <div class="row">
       ${G.missed.length?`<button class="btn" id="fix">Opravit chyby (${G.missed.length})</button>`:''}
       <button class="btn ${G.missed.length?'sec':''}" id="again">Hrát znovu</button>
-      <a class="btn sec" href="index.html" style="display:inline-flex;align-items:center;text-decoration:none">Jiná hra</a>
+      <a class="btn sec" href="index.html" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">Jiná hra</a>
     </div>`;
   if($('fix'))$('fix').onclick=newPractice;
   $('again').onclick=newGame;
