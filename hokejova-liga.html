@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-title" content="Hry">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Hokejová liga</title>
+<meta name="hra:predmet" content="Matematika">
+<meta name="hra:popis" content="Rozklad, odčítání přes 10 a dvojciferných, řetězovky, slovní úlohy, peníze, tělesa, hádanky">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Hokejová liga: učivo Divíci 2 – Matematika, 1. díl (str. 42–65) + Oxford sešit.
+   9 disciplín po 6 úlohách (od snadné po těžší) + zápas = 3 třetiny po 6 smíšených úlohách, mezi nimi pohyb.
+   Žádné psaní: číselník, nebo ťuknutí na odpověď. Víc kroků v jedné úloze = rozklad jako v učebnici.
+   Po chybě klidná nápověda, po druhé chybě ukázat řešení a jít dál. Slovní úlohy umí přečíst nahlas. */
+:root{
+  --paper:#F6F9FC; --grid:#DCE7F2; --ink:#1C2A3A; --muted:#5B6E82; --card:#FFFFFF; --line:#C9D7E6;
+  --blue:#2563B8; --blue-soft:#E3EDFA; --red:#D23C3C; --red-soft:#FBE7E7;
+  --ok:#1F8A4C; --ok-soft:#E3F4E8; --warn:#B45309; --warn-soft:#FDF0E1; --on-blue:#FFFFFF;
+  --f-display:"Fredoka",ui-rounded,system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#16202B; --grid:#223142; --ink:#EAF1F8; --muted:#9AAEC2; --card:#1C2836; --line:#2E4157;
+  --blue:#6EA8FF; --blue-soft:#1D3150; --red:#FF6B6B; --red-soft:#4A2228;
+  --ok:#4CD38A; --ok-soft:#173A28; --warn:#FFB454; --warn-soft:#3D2C14; --on-blue:#0F1B2B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#16202B; --grid:#223142; --ink:#EAF1F8; --muted:#9AAEC2; --card:#1C2836; --line:#2E4157;
+  --blue:#6EA8FF; --blue-soft:#1D3150; --red:#FF6B6B; --red-soft:#4A2228;
+  --ok:#4CD38A; --ok-soft:#173A28; --warn:#FFB454; --warn-soft:#3D2C14; --on-blue:#0F1B2B; color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;
+  color:var(--ink); font-family:var(--f-body); font-size:20px;
+  overflow:hidden; overscroll-behavior:none;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+}
+.app{
+  height:100%; display:flex; flex-direction:column; gap:14px; max-width:1100px; margin:0 auto;
+  padding-top:max(14px,env(safe-area-inset-top,0px)); padding-bottom:max(14px,env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+header{display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-height:52px}
+.back{min-width:52px;height:52px;border-radius:14px;border:2px solid var(--grid);background:var(--card);color:var(--ink);
+  font-size:24px;display:flex;align-items:center;justify-content:center;text-decoration:none;cursor:pointer;font-family:inherit}
+h1{font-family:var(--f-display); font-weight:700; font-size:clamp(24px,3.2vw,34px); margin:0}
+.chip{font-family:var(--f-display); font-weight:600; font-size:18px; background:var(--blue-soft); color:var(--blue); padding:6px 14px; border-radius:999px}
+.chip:empty{display:none}
+.right{margin-left:auto; display:flex; align-items:center; gap:16px}
+.dots{display:flex; gap:6px}
+.dot{width:20px;height:20px;border-radius:50%;border:2.5px solid var(--muted)}
+.dot.done{background:var(--ink);border-color:var(--ink)}
+.dot.goal{background:var(--ok);border-color:var(--ok)}
+.dot.cur{border-color:var(--ink);border-width:4px}
+.score{font-family:var(--f-display); font-weight:700; font-size:26px; font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:6px}
+.score.pop{animation:pop .3s}
+@keyframes pop{50%{transform:scale(1.2)}}
+
+.stage{
+  flex:1; min-height:0; position:relative; overflow:hidden;
+  background:var(--card); border:3px solid var(--line); border-radius:28px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+  padding:24px; text-align:center;
+}
+.stage.scroll{overflow-y:auto; justify-content:flex-start}
+.stage.scroll>:first-child{margin-top:auto}
+.stage.scroll>:last-child{margin-bottom:auto}
+.big{font-family:var(--f-display); font-weight:700; font-size:clamp(28px,4.6vw,46px); line-height:1.2; margin:0}
+.small{font-size:clamp(20px,2.6vw,26px); color:var(--muted); line-height:1.5; margin:0; max-width:640px}
+.btn{
+  min-height:76px; min-width:240px; padding:0 36px; border:none; border-radius:22px;
+  background:var(--blue); color:var(--on-blue); font-family:var(--f-display); font-weight:700; font-size:30px; cursor:pointer;
+  box-shadow:0 5px 0 rgba(0,0,0,.18); transition:transform .08s;
+}
+.btn:active{transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.btn:disabled{opacity:.45}
+.btn.sec{background:var(--card); color:var(--ink); border:3px solid var(--line); box-shadow:none; font-size:24px; min-height:68px}
+.btn:focus-visible,.opt:focus-visible,.key:focus-visible,.dtile:focus-visible{outline:4px solid var(--ink); outline-offset:3px}
+.row{display:flex; gap:14px; flex-wrap:wrap; justify-content:center}
+
+/* Menu disciplín */
+.dgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; width:100%; max-width:900px}
+.dtile{display:flex; align-items:center; gap:12px; padding:12px 14px; min-height:84px; text-align:left;
+  background:var(--card); color:var(--ink); border:3px solid var(--line); border-radius:20px; cursor:pointer; font-family:inherit}
+.dtile:active{transform:scale(.97)}
+.dtile .e{font-size:36px; line-height:1; flex:none}
+.dtile b{display:block; font-family:var(--f-display); font-size:22px; line-height:1.15}
+.dtile span{display:block; font-size:16px; color:var(--muted)}
+.dtile .star{margin-left:auto; font-size:22px; flex:none}
+.sect{font-family:var(--f-display); font-weight:600; font-size:22px; color:var(--muted); margin:6px 0 -8px}
+
+/* Hrací plocha */
+.play{width:100%; height:100%; display:grid; grid-template-columns:1fr auto; gap:24px; align-items:center}
+.left{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; min-width:0}
+.task{font-family:var(--f-display); font-weight:600; font-size:clamp(22px,2.8vw,28px); color:var(--muted); margin:0; display:flex; align-items:center; gap:10px}
+.say{width:52px;height:52px;border-radius:50%;border:3px solid var(--line);background:var(--card);font-size:24px;cursor:pointer;flex:none}
+.say:active{transform:scale(.92)}
+.slot{min-width:1.7em; height:1.3em; padding:0 .12em; border:4px dashed var(--line); border-radius:.22em;
+  background:transparent; color:var(--muted); display:inline-flex; align-items:center; justify-content:center; font-variant-numeric:tabular-nums}
+.slot.cur{border-color:var(--blue); background:var(--blue-soft); color:var(--blue); border-width:5px}
+.slot.ok{border-style:solid; border-color:var(--ok); background:var(--ok-soft); color:var(--ok)}
+.slot.bad{border-color:var(--warn); background:var(--warn-soft); color:var(--warn); animation:shake .35s}
+.slot.fix{border-style:solid; color:var(--ink)}
+.slot.wide{min-width:3.6em}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.eq{font-family:var(--f-display); font-weight:700; font-size:clamp(50px,7.6vw,92px); line-height:1;
+  display:flex; align-items:center; justify-content:center; gap:.22em; white-space:nowrap; font-variant-numeric:tabular-nums}
+.op{color:var(--muted)}
+
+/* Příklad s rozkladem pod číslem (jako v učebnici) */
+.eqg{display:grid; grid-auto-flow:column; grid-template-rows:auto auto; align-items:center; justify-items:center; column-gap:.22em;
+  font-family:var(--f-display); font-weight:700; font-size:clamp(50px,7.6vw,92px); line-height:1; font-variant-numeric:tabular-nums}
+.mini{display:flex; flex-direction:column; align-items:center; font-size:.7em}
+.mini svg{width:2.8em; height:.7em; display:block}
+.mini svg line,.tree svg line{stroke:var(--muted); stroke-width:3; stroke-linecap:round}
+.mini .parts{display:flex; gap:.35em}
+.mini .slot{min-width:1.4em}
+
+/* Stromeček rozkladu */
+.tree{display:flex; flex-direction:column; align-items:center; font-family:var(--f-display); font-weight:700; font-size:clamp(50px,7.6vw,86px); line-height:1; font-variant-numeric:tabular-nums}
+.tree svg{width:3.4em; height:.8em; display:block}
+.tree .parts{display:flex; gap:.9em}
+
+/* Porovnávání */
+.cmp{display:flex; align-items:center; gap:.35em; font-family:var(--f-display); font-weight:700; font-size:clamp(40px,6.2vw,74px); white-space:nowrap; font-variant-numeric:tabular-nums}
+.cmp .ex{display:flex; flex-direction:column; align-items:center; gap:6px}
+.cmp .res{font-size:.55em; color:var(--blue); min-height:1.1em}
+
+/* Řetězovka */
+.chain{display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px 4px; max-width:760px;
+  font-family:var(--f-display); font-weight:700; font-size:clamp(34px,4.6vw,50px); font-variant-numeric:tabular-nums}
+.chain .node{width:1.9em; height:1.9em; border-radius:50%; border:4px solid var(--line); display:flex; align-items:center; justify-content:center}
+.chain .node.slot{border-radius:50%; min-width:0; height:1.9em; padding:0}
+.chain .node.start{border-color:var(--ink)}
+.chain .link{display:flex; flex-direction:column; align-items:center; font-size:.62em; color:var(--muted); min-width:2.4em}
+.chain .link::after{content:""; display:block; width:100%; height:4px; border-radius:2px; background:var(--line); margin-top:4px}
+
+/* Slovní úloha */
+.story{font-size:clamp(24px,3vw,32px); line-height:1.6; max-width:640px; margin:0; text-align:left}
+.story p{margin:0 0 6px}
+.story .q{font-weight:700}
+.solve{display:flex; align-items:center; gap:.25em; font-family:var(--f-display); font-weight:700; font-size:clamp(40px,5.6vw,64px); font-variant-numeric:tabular-nums}
+.answer{font-family:var(--f-display); font-weight:600; font-size:clamp(24px,3vw,30px); color:var(--ok); margin:0}
+
+/* Peníze */
+.coins{display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:center; max-width:620px}
+.coin{border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1;
+  font-family:var(--f-display); font-weight:700; border:4px solid; box-shadow:inset 0 -6px 0 rgba(0,0,0,.12)}
+.coin small{font-size:.42em; font-weight:600}
+.coin.s{background:#E2E7EC; border-color:#9AA5B1; color:#2D3A47}
+.coin.cu{background:#D98A52; border-color:#9E5A2C; color:#2B1606}
+.coin.au{background:#ECC651; border-color:#A8831F; color:#3A2B05}
+.coin.ring{background:radial-gradient(circle,#ECC651 0 48%,#E2E7EC 50%); border-color:#9AA5B1; color:#2D3A47}
+.shop{display:flex; align-items:center; gap:14px; font-family:var(--f-display); font-weight:700; font-size:clamp(28px,3.6vw,38px)}
+.shop .e{font-size:1.6em}
+.tag{background:var(--warn-soft); color:var(--warn); border:3px solid var(--warn); border-radius:14px; padding:4px 14px}
+
+/* Tělesa a hádanky */
+.solid svg{width:min(240px,40vw); height:auto; display:block}
+.obj{font-family:var(--f-display); font-weight:600; font-size:26px; margin:0}
+.riddle{display:flex; flex-direction:column; gap:10px; font-family:var(--f-display); font-weight:700; font-size:clamp(38px,5.2vw,58px); font-variant-numeric:tabular-nums}
+.riddle div{display:flex; align-items:center; justify-content:center; gap:.3em}
+.riddle .sym{font-size:1.05em}
+
+/* Zpráva a nápověda */
+.msg{min-height:130px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; width:100%}
+.msg-t{font-family:var(--f-display); font-weight:700; font-size:clamp(30px,4.4vw,44px); margin:0}
+.msg-t.ok{color:var(--ok)} .msg-t.warn{color:var(--warn)}
+.msg-s{font-size:clamp(20px,2.6vw,26px); color:var(--muted); margin:0}
+.hint{display:flex; flex-direction:column; gap:6px; padding:12px 22px; border-radius:18px; background:var(--blue-soft);
+  font-family:var(--f-display); font-weight:600; font-size:clamp(24px,3.2vw,34px); line-height:1.25; font-variant-numeric:tabular-nums}
+.hint small{font-family:var(--f-body); font-weight:400; font-size:20px; color:var(--muted)}
+.hint .t{color:var(--blue)}
+
+/* Ovládání vpravo: číselník nebo volby */
+.ctrl{display:flex; justify-content:center}
+.pad{display:grid; grid-template-columns:repeat(3,96px); grid-auto-rows:84px; gap:12px}
+.key{border:3px solid var(--line); border-radius:20px; background:var(--card); color:var(--ink);
+  font-family:var(--f-display); font-weight:700; font-size:40px; cursor:pointer; box-shadow:0 4px 0 var(--line); transition:transform .06s}
+.key:active{transform:translateY(3px); box-shadow:0 1px 0 var(--line)}
+.key.del{font-size:32px; color:var(--muted)}
+.key.go{background:var(--ok); border-color:var(--ok); color:#fff; box-shadow:0 4px 0 rgba(0,0,0,.2); font-size:34px}
+.key:disabled{opacity:.4}
+.opts{display:flex; flex-direction:column; gap:12px; width:300px}
+.opt{min-height:78px; padding:6px 16px; border:3px solid var(--line); border-radius:20px; background:var(--card); color:var(--ink);
+  font-family:var(--f-display); font-weight:700; font-size:32px; cursor:pointer; box-shadow:0 4px 0 var(--line); font-variant-numeric:tabular-nums}
+.opt:active{transform:translateY(3px); box-shadow:0 1px 0 var(--line)}
+.opt.sym{font-size:56px; min-height:90px}
+.opt.bad{border-color:var(--warn); color:var(--warn); background:var(--warn-soft); opacity:.6}
+.opt.ok{border-color:var(--ok); color:#fff; background:var(--ok)}
+.opts.many .opt{min-height:64px; font-size:28px}
+
+@media (max-aspect-ratio:1/1){
+  .play{grid-template-columns:1fr; grid-template-rows:1fr auto; gap:14px}
+  .pad{grid-template-columns:repeat(3,minmax(84px,1fr)); width:min(100%,420px); grid-auto-rows:76px}
+  .opts{flex-direction:row; flex-wrap:wrap; justify-content:center; width:min(100%,640px)}
+  .opt{flex:1 1 140px}
+  .msg{min-height:110px}
+  .eq,.eqg,.tree{font-size:clamp(50px,10vw,110px)}
+  .chain{font-size:clamp(36px,6.4vw,60px)}
+  .story{font-size:clamp(24px,4vw,36px)}
+  .solve{font-size:clamp(40px,7vw,72px)}
+  .cmp{font-size:clamp(40px,7.4vw,80px)}
+  .riddle{font-size:clamp(38px,7vw,70px)}
+  .coins{zoom:1.25}
+  .solid svg{width:min(300px,48vw)}
+  .task{font-size:clamp(22px,3.4vw,30px)}
+}
+@media (max-height:640px) and (min-aspect-ratio:1/1){
+  .pad{grid-auto-rows:66px; gap:9px} .key{font-size:32px} .opt{min-height:62px}
+}
+
+.periods{display:flex; gap:14px; flex-wrap:wrap; justify-content:center}
+.pcard{display:flex; flex-direction:column; align-items:center; gap:6px; width:170px; padding:16px 10px;
+  border:3px solid var(--line); border-radius:22px; background:var(--card)}
+.pcard .emoji{font-size:42px; line-height:1}
+.pcard b{font-family:var(--f-display); font-size:22px}
+.pcard span{font-size:17px; color:var(--muted)}
+.howto{display:flex; flex-direction:column; align-items:center; gap:14px; padding:18px 26px; border-radius:24px; background:var(--blue-soft)}
+.howto .eqg,.howto .tree{font-size:clamp(40px,5.6vw,64px)}
+.howto .steps{font-family:var(--f-display); font-weight:600; font-size:clamp(24px,3vw,32px); line-height:1.45; font-variant-numeric:tabular-nums}
+.new{font-family:var(--f-display); font-weight:700; font-size:20px; background:var(--warn-soft); color:var(--warn); padding:4px 14px; border-radius:999px}
+.move-ico{font-size:96px; line-height:1}
+.badges{display:flex; gap:12px; flex-wrap:wrap; justify-content:center}
+.badge{display:flex; flex-direction:column; align-items:center; gap:4px; width:140px; padding:12px 8px;
+  border:3px solid var(--ok); border-radius:20px; background:var(--ok-soft)}
+.badge .emoji{font-size:40px; line-height:1}
+.badge b{font-family:var(--f-display); font-size:17px; line-height:1.2}
+.badge.off{border-color:var(--line); background:var(--card); opacity:.45; filter:grayscale(1)}
+.record{font-family:var(--f-display); font-weight:700; font-size:28px; color:var(--ok); margin:0}
+.stats{font-size:22px; line-height:1.6}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a class="back" id="back" href="index.html" aria-label="Zpět">‹</a>
+    <h1 id="title">Hokejová liga</h1>
+    <span class="chip" id="chip"></span>
+    <div class="right">
+      <div class="dots" id="dots"></div>
+      <div class="score" id="score" aria-label="Body">⭐ <span id="pts">0</span></div>
+    </div>
+  </header>
+  <main class="stage" id="stage"></main>
+</div>
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const stage=$('#stage');
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const M='−';
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+let timers=[];
+const T=(f,ms)=>{const id=setTimeout(f,ms);timers.push(id);return id};
+const clearT=()=>{timers.forEach(clearTimeout);timers=[]};
+
+/* ---------- Čtení nahlas (čeština, pokud ji iPad má) ---------- */
+function say(text){
+  try{
+    const s=window.speechSynthesis; if(!s) return; s.cancel();
+    const u=new SpeechSynthesisUtterance(text.replace(/−/g,' mínus ').replace(/\+/g,' plus ').replace(/=/g,' je '));
+    u.lang='cs-CZ'; u.rate=.9;
+    const v=s.getVoices().find(v=>/^cs/i.test(v.lang)); if(v) u.voice=v;
+    s.speak(u);
+  }catch(e){}
+}
+try{window.speechSynthesis&&speechSynthesis.getVoices()}catch(e){}
+const sayBtn=t=>`<button class="say" data-say="${t.replace(/"/g,'&quot;')}" aria-label="Přečíst nahlas">🔊</button>`;
+function bindSay(root){root.querySelectorAll('[data-say]').forEach(b=>b.onclick=e=>{e.stopPropagation();say(b.dataset.say)})}
+
+/* ---------- Kroky výpočtu pro nápovědu (přes desítku) ---------- */
+function stepsAdd(x,y){
+  if(x<10&&y>=10)[x,y]=[y,x];
+  const s=x+y;
+  if(x<10&&y<10){ if(s<=10) return [[x,'+',y,s]]; const r=10-x; return [[x,'+',r,10],[10,'+',y-r,s]] }
+  if(x===10||y===0) return [[x,'+',y,s]];
+  if(x>=10&&y>=10) return [[x,'+',10,x+10],[x+10,'+',y-10,s]];
+  const u=x-10; if(u+y<=10) return [[u,'+',y,u+y],[10,'+',u+y,s]];
+  return [[x,'+',y,s]];
+}
+function stepsSub(x,y){
+  const d=x-y;
+  if(x<=10||y===0) return [[x,M,y,d]];
+  if(y<10){ const u=x-10; if(y<=u) return [[u,M,y,u-y],[10,'+',u-y,d]]; return [[x,M,u,10],[10,M,y-u,d]] }
+  if(y===10) return [[x,M,10,d]];
+  return [[x,M,10,x-10],[x-10,M,y-10,d]];
+}
+function calcHint(x,op,y,reveal,lead){
+  const st=op==='+'?stepsAdd(x,y):stepsSub(x,y);
+  const rows=st.map((s,i)=>`<div>${s[0]} ${s[1]} ${s[2]} = <span class="t">${i===st.length-1&&!reveal?'?':s[3]}</span></div>`).join('');
+  return `<div class="hint">${lead?`<small>${lead}</small>`:''}${st.length>1?'<small>Po krocích:</small>':''}${rows}</div>`;
+}
+const hint=(small,body)=>`<div class="hint">${small?`<small>${small}</small>`:''}${body?`<div>${body}</div>`:''}</div>`;
+const plural=(n,f)=>n===1?f[0]:(n>=2&&n<=4?f[1]:f[2]);
+const LV=[0,0,1,1,2,2];
+
+/* ---------- Kousky obrázků ---------- */
+const sl=(id,cls='')=>`<span class="slot ${cls}" id="${id}">?</span>`;
+const fx=v=>`<span class="slot fix">${v}</span>`;
+const forkSvg=`<svg viewBox="0 0 100 30" preserveAspectRatio="none"><line x1="50" y1="2" x2="18" y2="28"/><line x1="50" y1="2" x2="82" y2="28"/></svg>`;
+const mini=(l,r)=>`<div class="mini">${forkSvg}<div class="parts">${l}${r}</div></div>`;
+// a − b = ?, pod číslem b rozklad (jako v Divíci str. 43 a 52)
+function eqUnder(a,b,l,r,res){
+  return `<div class="eqg"><span>${a}</span><span></span><span class="op">${M}</span><span></span>
+    <span>${b}</span>${mini(l,r)}<span class="op">=</span><span></span>${res}<span></span></div>`;
+}
+function treeHtml(top,l,r){return `<div class="tree">${top}${forkSvg}<div class="parts">${l}${r}</div></div>`}
+
+/* ---------- Generátory úloh ----------
+   Úloha = {type, task (pokyn), html, steps:[{kind:'num'|'choice', ans, slot?, opts?, hint(reveal)}], speak?, done?}
+   Každý generátor dostane úroveň 0–2 (snadné → těžší). */
+const GEN={};
+
+// 1) Rozklad čísel – Oxford str. 34–35
+GEN.bond=lv=>{
+  if(lv<2){
+    const w=lv===0?rnd(6,10):rnd(11,20);
+    let k=lv===0?rnd(1,w-1):(Math.random()<.4?rnd(10,w-1):rnd(1,w-1));
+    if(Math.random()<.08) k=0;
+    const left=Math.random()<.5, miss=w-k;
+    return {type:'bond', task:'Rozlož číslo', key:`b${w}-${k}`,
+      html:treeHtml(fx(w), left?sl('s0','cur'):fx(k), left?fx(k):sl('s0','cur')),
+      steps:[{kind:'num',slot:'s0',ans:miss,hint:r=>hint(`${w} je ${k} a kolik?`,`${w} ${M} ${k} = <span class="t">${r?miss:'?'}</span>`)}]};
+  }
+  const p=rnd(1,15), q=rnd(1,20-p);
+  return {type:'bond', task:'Kolik je nahoře?', key:`bt${p}-${q}`,
+    html:treeHtml(sl('s0','cur'),fx(p),fx(q)),
+    steps:[{kind:'num',slot:'s0',ans:p+q,hint:r=>calcHint(p,'+',q,r,'Sečti obě čísla')}]};
+};
+
+// 2) Odčítání přes desítku s rozkladem – Divíci str. 42–43
+GEN.prechod=lv=>{
+  const a=lv===0?rnd(11,14):rnd(11,18), u=a-10, b=rnd(u+1,9), d=b-u;
+  return {type:'prechod', task:'Rozlož a odečti přes 10', key:`p${a}-${b}`,
+    html:eqUnder(a,b,sl('s0'),sl('s1'),sl('s2')),
+    steps:[
+      {kind:'num',slot:'s0',ans:u,hint:r=>hint('Kolik odečtu, abych byl na 10?',`${a} ${M} <span class="t">${r?u:'?'}</span> = 10`)},
+      {kind:'num',slot:'s1',ans:d,hint:r=>hint(`Rozlož ${b}`,`${b} = ${u} + <span class="t">${r?d:'?'}</span>`)},
+      {kind:'num',slot:'s2',ans:a-b,hint:r=>hint('Teď od desítky',`10 ${M} ${d} = <span class="t">${r?10-d:'?'}</span>`)}
+    ]};
+};
+
+// 3) Odčítání dvojciferných čísel – Divíci str. 52–54
+GEN.dvojc=lv=>{
+  let a,b;
+  if(lv===0){ a=rnd(14,19); b=rnd(11,a-1) }
+  else if(lv===1){ a=rnd(13,20); b=rnd(11,a-1) }
+  else { a=Math.random()<.5?20:rnd(15,19); b=rnd(11,a-1) }
+  const u=b-10;
+  return {type:'dvojc', task:'Rozlož a odečti', key:`d${a}-${b}`,
+    html:eqUnder(a,b,sl('s0'),sl('s1'),sl('s2')),
+    steps:[
+      {kind:'num',slot:'s0',ans:10,hint:r=>hint('Kolik je v čísle desítek?',`${b} = <span class="t">${r?10:'?'}</span> + ${u}`)},
+      {kind:'num',slot:'s1',ans:u,hint:r=>hint('A kolik zbude?',`${b} = 10 + <span class="t">${r?u:'?'}</span>`)},
+      {kind:'num',slot:'s2',ans:a-b,hint:r=>hint('Nejdřív desítku, pak zbytek',`${a} ${M} 10 = ${a-10}<br>${a-10} ${M} ${u} = <span class="t">${r?a-b:'?'}</span>`)}
+    ]};
+};
+
+// 4) Porovnej výsledky – Divíci str. 43, 54, 65
+function exPlain(){ if(Math.random()<.5){const u=rnd(1,8),s=rnd(1,9-u);return {s:`${10+u} + ${s}`,v:10+u+s}} const u=rnd(3,9),b=rnd(1,u-1);return {s:`${10+u} ${M} ${b}`,v:10+u-b} }
+function exCross(){ if(Math.random()<.5){let a,b;do{a=rnd(3,9);b=rnd(3,9)}while(a+b<=10);return {s:`${a} + ${b}`,v:a+b}} const c=rnd(11,18),b=rnd(c-9,9);return {s:`${c} ${M} ${b}`,v:c-b} }
+function exTwo(){ const a=rnd(12,20),b=rnd(11,a-1); return {s:`${a} ${M} ${b}`,v:a-b} }
+GEN.porovnej=lv=>{
+  const g=[[exPlain,exPlain],[exCross,exCross],[exTwo,exCross]][lv];
+  const L=g[0](); let R, t=0, wantEq=Math.random()<.3;
+  do{R=(Math.random()<.5?g[1]:g[0])(); t++}while((R.s===L.s||(wantEq&&R.v!==L.v))&&t<300);
+  const sign=L.v<R.v?'<':L.v>R.v?'>':'=';
+  const why={'<':'je menší než','>':'je větší než','=':'je stejně jako'}[sign];
+  return {type:'porovnej', task:'Spočítej a porovnej', key:`c${L.s}|${R.s}`,
+    html:`<div class="cmp"><div class="ex"><span class="res" id="rl"></span><span>${L.s}</span></div>${sl('s0','cur')}<div class="ex"><span class="res" id="rr"></span><span>${R.s}</span></div></div>`,
+    steps:[{kind:'choice',slot:'s0',ans:sign,sym:true,opts:['<','>','='],
+      hint:r=>{ const a=$('#rl'),b=$('#rr'); if(a){a.textContent=L.v; b.textContent=R.v} return hint('Výsledky jsou nahoře',`${L.v} ${why} ${R.v}`) }}]};
+};
+
+// 5) Řetězovka – Divíci str. 43, 54, 65
+GEN.retez=lv=>{
+  const n=[3,4,5][lv], maxOp=[9,12,19][lv];
+  let cur=rnd(lv===0?5:8,lv===0?12:20); const start=cur, ops=[];
+  for(let i=0;i<n;i++){
+    let op,k,t=0;
+    do{ op=Math.random()<.5?'+':M; k=rnd(2,maxOp); t++ }while(((op==='+'?cur+k:cur-k)<0||(op==='+'?cur+k:cur-k)>20||(i>0&&ops[i-1].op===op&&Math.random()<.5))&&t<200);
+    const nx=op==='+'?cur+k:cur-k; ops.push({op,k,from:cur,to:nx}); cur=nx;
+  }
+  let html=`<div class="chain"><div class="node start">${start}</div>`;
+  ops.forEach((o,i)=>{ html+=`<div class="link">${o.op}${o.k}</div><span class="node slot" id="s${i}">?</span>` });
+  html+='</div>';
+  return {type:'retez', task:'Počítej po řetězu', key:`r${start}${ops.map(o=>o.op+o.k).join('')}`, html,
+    steps:ops.map((o,i)=>({kind:'num',slot:`s${i}`,ans:o.to,hint:r=>calcHint(o.from,o.op,o.k,r)}))};
+};
+
+// 6) Slovní úlohy – Divíci str. 42–65, Oxford str. 46–47 (sportovní témata)
+const NOUN={gol:['gól','góly','gólů'],hrac:['hráč','hráči','hráčů'],strela:['střela','střely','střel'],puk:['puk','puky','puků'],
+  figurka:['figurka','figurky','figurek'],pisen:['písnička','písničky','písniček'],min:['minuta','minuty','minut'],kartic:['kartička','kartičky','kartiček']};
+const STORIES=[
+  {op:'+', f:(a,b)=>[`Matěj dal v 1. zápase ${a} gólů.`,`Ve 2. zápase dal ${b} gólů.`,`Kolik gólů dal celkem?`], n:'gol', why:'celkem → sčítám'},
+  {op:'+', f:(a,b)=>[`Trenér má v tašce ${a} puků.`,`Koupí ještě ${b} puků.`,`Kolik puků má teď?`], n:'puk', why:'přibyly → sčítám'},
+  {op:'+', f:(a,b)=>[`Matěj umí zahrát ${a} písniček.`,`Naučí se ještě ${b} nových.`,`Kolik písniček umí teď?`], n:'pisen', why:'přibyly → sčítám'},
+  {op:'+', f:(a,b)=>[`Šimon dal ${a} gólů.`,`Matěj dal o ${b} gólů víc.`,`Kolik gólů dal Matěj?`], n:'gol', why:'o víc → sčítám'},
+  {op:'+', f:(a,b)=>[`Matěj má ${a} hokejových kartiček.`,`Od táty dostal ${b} kartiček.`,`Kolik kartiček má teď?`], n:'kartic', why:'dostal → sčítám'},
+  {op:M, f:(a,b)=>[`Na trénink přišlo ${a} hráčů.`,`${b} hráčů odešlo dřív domů.`,`Kolik hráčů zůstalo?`], n:'hrac', why:'odešli → odčítám'},
+  {op:M, f:(a,b)=>[`Brankář chytil ${a} střel.`,`Druhý brankář chytil o ${b} střel méně.`,`Kolik střel chytil druhý brankář?`], n:'strela', why:'o méně → odčítám'},
+  {op:M, f:(a,b)=>[`Matěj měl v šachách ${a} figurek.`,`Soupeř mu vzal ${b} figurek.`,`Kolik figurek mu zbylo?`], n:'figurka', why:'vzal → odčítám'},
+  {op:M, f:(a,b)=>[`Ondra dal ${a} gólů.`,`Péťa dal ${b} gólů.`,`O kolik gólů méně dal Péťa?`], n:'gol', why:'o kolik méně → odčítám', diff:true},
+  {op:M, f:(a,b)=>[`Zápas trval ${a} minut.`,`Matěj hrál ${b} minut.`,`Kolik minut seděl na střídačce?`], n:'min', why:'zbytek → odčítám'}
+];
+GEN.slovni=lv=>{
+  const st=pick(STORIES); let a,b;
+  if(st.op==='+'){
+    if(lv===0){ a=rnd(5,12); b=rnd(5,Math.min(9,19-a)); if(a<10&&a+b>10){a=rnd(10,14); b=rnd(5,19-a)} }
+    else { do{a=rnd(5,9); b=rnd(5,9)}while(a+b<=10) }
+  }else{
+    if(lv===0){ a=rnd(15,19); b=rnd(5,a-10) }
+    else if(st.diff){ a=rnd(14,20); b=rnd(10,a-2) }
+    else { a=rnd(12,18); b=rnd(Math.max(5,a-9),9) }
+  }
+  const res=st.op==='+'?a+b:a-b;
+  const lines=st.f(a,b);
+  const exOk=`${a} ${st.op} ${b}`;
+  const exBad= st.op===M ? `${a} + ${b}` : (a>=b?`${a} ${M} ${b}`:`${b} ${M} ${a}`);
+  const opts=[exOk,exBad];
+  const word=plural(res,NOUN[st.n]);
+  return {type:'slovni', task:'Přečti a vyřeš', key:`s${lines[0]}${b}`, speak:lines.join(' '),
+    html:`<div class="story">${lines.map((l,i)=>`<p class="${i===2?'q':''}">${l}</p>`).join('')}</div>
+      <div class="solve">${sl('s0','wide')}<span class="op">=</span>${sl('s1')}</div>`,
+    steps:[
+      {kind:'choice',slot:'s0',ans:exOk,opts:shuffle(opts.slice()),hint:r=>hint(st.why.split('→')[0].trim()+' → '+(st.op==='+'?'sčítám ＋':'odčítám −'),r?exOk:'')},
+      {kind:'num',slot:'s1',ans:res,hint:r=>calcHint(a,st.op,b,r)}
+    ],
+    done:`✔ ${res} ${word}`};
+};
+
+// 7) Peníze – Divíci str. 59 (Nakupujeme), Oxford str. 47
+const COIN={1:{c:'s',z:80},2:{c:'s',z:88},5:{c:'s',z:96},10:{c:'cu',z:92},20:{c:'au',z:104},50:{c:'ring',z:108}};
+const coinHtml=v=>`<div class="coin ${COIN[v].c}" style="width:${COIN[v].z}px;height:${COIN[v].z}px;font-size:${COIN[v].z*.42}px">${v}<small>Kč</small></div>`;
+const ITEMS=[{e:'🧃',n:'džus'},{e:'🍫',n:'čokoláda'},{e:'🏒',n:'páska na hokejku'},{e:'⚽',n:'samolepka s fotbalistou'},{e:'🎸',n:'trsátko na kytaru'},{e:'🃏',n:'balíček kartiček'}];
+GEN.penize=lv=>{
+  const it=pick(ITEMS);
+  if(lv===2&&Math.random()<.6){
+    const price=rnd(11,19);
+    return {type:'penize', task:'Kolik ti vrátí?', key:`v${price}`, speak:`Platíš dvacetikorunou. ${it.n} stojí ${price} korun. Kolik ti vrátí?`,
+      html:`<div class="shop"><span class="e">${it.e}</span><span>${it.n}</span><span class="tag">${price} Kč</span></div>
+        <div class="row" style="align-items:center;gap:18px"><span class="task" style="margin:0">Platíš:</span>${coinHtml(20)}</div>
+        <div class="solve">20 <span class="op">${M}</span> ${price} <span class="op">=</span> ${sl('s0','cur')}</div>`,
+      steps:[{kind:'num',slot:'s0',ans:20-price,hint:r=>calcHint(20,M,price,r)}], done:`✔ Vrátí ti ${20-price} Kč`};
+  }
+  const pool=lv===0?[1,2,5,10]:[1,2,5,10,20], n=lv===0?rnd(2,3):rnd(3,4);
+  let cs,t=0; do{cs=[...Array(n)].map(()=>pick(pool)); t++}while((cs.reduce((s,v)=>s+v,0)>20||cs.reduce((s,v)=>s+v,0)<5)&&t<200);
+  cs.sort((x,y)=>y-x); const sum=cs.reduce((s,v)=>s+v,0);
+  const steps=[{kind:'num',slot:'s0',ans:sum,hint:r=>hint('Sečti od největší mince',`${cs.join(' + ')} = <span class="t">${r?sum:'?'}</span>`)}];
+  let shop='';
+  if(lv>0){
+    const price=Math.max(3,sum+pick([-3,-2,-1,0,1,2,3]));
+    const okBuy=sum>=price?'Ano':'Ne';
+    shop=`<div class="shop" id="shop" style="visibility:hidden"><span class="e">${it.e}</span><span>${it.n}</span><span class="tag">${price} Kč</span><span>${sl('s1')}</span></div>`;
+    steps.push({kind:'choice',slot:'s1',ans:okBuy,opts:['Ano','Ne'],ask:'Stačí ti peníze?',
+      hint:r=>hint(`Máš ${sum} Kč, stojí ${price} Kč`,`${sum} ${sum>price?'>':sum<price?'<':'='} ${price} → <span class="t">${r?okBuy:'?'}</span>`)});
+  }
+  return {type:'penize', task:'Kolik je to korun?', key:`m${cs.join('')}`,
+    html:`<div class="coins">${cs.map(coinHtml).join('')}</div><div class="solve">${sl('s0','cur')}<span>Kč</span></div>${shop}`,
+    steps, onStep:i=>{ if(i===1){ const s=$('#shop'); if(s) s.style.visibility='visible'; $('#task').firstChild.textContent='Stačí ti peníze? ' } }};
+};
+
+// 8) Tělesa – Divíci str. 62–63
+const COLS=[{b:'#E9B820',l:'#F7D964',d:'#B88A0E'},{b:'#2F6FD0',l:'#6C9FEA',d:'#1F4E9A'},{b:'#D9433B',l:'#EF7B74',d:'#A52B25'},{b:'#2E9E55',l:'#6CCB8B',d:'#1E7239'}];
+function solidSvg(kind,c){
+  const s='stroke="#1C2A3A" stroke-width="2.5" stroke-linejoin="round"';
+  if(kind==='krychle') return `<svg viewBox="0 0 160 160"><polygon points="30,60 100,60 100,130 30,130" fill="${c.b}" ${s}/><polygon points="30,60 60,30 130,30 100,60" fill="${c.l}" ${s}/><polygon points="100,60 130,30 130,100 100,130" fill="${c.d}" ${s}/></svg>`;
+  if(kind==='kvadr') return `<svg viewBox="0 0 160 160"><polygon points="12,72 118,72 118,128 12,128" fill="${c.b}" ${s}/><polygon points="12,72 40,46 146,46 118,72" fill="${c.l}" ${s}/><polygon points="118,72 146,46 146,102 118,128" fill="${c.d}" ${s}/></svg>`;
+  if(kind==='koule') return `<svg viewBox="0 0 160 160"><circle cx="80" cy="82" r="58" fill="${c.b}" ${s}/><ellipse cx="60" cy="60" rx="16" ry="11" fill="#fff" opacity=".55"/></svg>`;
+  if(kind==='valec') return `<svg viewBox="0 0 160 160"><path d="M35 42 V122 A45 15 0 0 0 125 122 V42 Z" fill="${c.b}" ${s}/><ellipse cx="80" cy="42" rx="45" ry="15" fill="${c.l}" ${s}/></svg>`;
+  if(kind==='kuzel') return `<svg viewBox="0 0 160 160"><path d="M80 18 L132 122 A52 16 0 0 1 28 122 Z" fill="${c.b}" ${s}/><path d="M28 122 A52 16 0 0 0 132 122" fill="none" ${s}/></svg>`;
+  if(kind==='puk') return `<svg viewBox="0 0 160 160"><path d="M20 70 V96 A60 20 0 0 0 140 96 V70 Z" fill="#232B33" ${s}/><ellipse cx="80" cy="70" rx="60" ry="20" fill="#4A5561" ${s}/></svg>`;
+  if(kind==='cone') return `<svg viewBox="0 0 160 160"><path d="M80 18 L132 122 A52 16 0 0 1 28 122 Z" fill="#F07D1A" ${s}/><path d="M56 70 L104 70 L114 92 A40 9 0 0 1 46 92 Z" fill="#fff"/><path d="M28 122 A52 16 0 0 0 132 122" fill="none" ${s}/></svg>`;
+  if(kind==='kostka') return solidSvg('krychle',{b:'#F3F3F3',l:'#FFFFFF',d:'#D5D9DE'}).replace('</svg>','<circle cx="65" cy="95" r="7" fill="#D9433B"/><circle cx="65" cy="45" r="5" fill="#1C2A3A"/><circle cx="95" cy="45" r="5" fill="#1C2A3A"/><circle cx="115" cy="65" r="5" fill="#1C2A3A"/><circle cx="115" cy="95" r="5" fill="#1C2A3A"/></svg>');
+  if(kind==='krabice') return solidSvg('kvadr',{b:'#C9935A',l:'#E2B37E',d:'#9C6B38'});
+  if(kind==='mic') return `<svg viewBox="0 0 160 160"><circle cx="80" cy="82" r="58" fill="#fff" ${s}/><polygon points="80,62 99,76 92,98 68,98 61,76" fill="#1C2A3A"/><path d="M80 24 V62 M99 76 L134 64 M92 98 L112 128 M68 98 L48 128 M61 76 L26 64" stroke="#1C2A3A" stroke-width="2.5"/></svg>`;
+  return '';
+}
+const SNAME={krychle:'krychle',kvadr:'kvádr',koule:'koule',valec:'válec',kuzel:'kužel'};
+const OBJ=[{k:'puk',s:'valec',n:'Hokejový puk'},{k:'cone',s:'kuzel',n:'Kužel na tréninku'},{k:'kostka',s:'krychle',n:'Hrací kostka'},{k:'krabice',s:'kvadr',n:'Krabice od bruslí'},{k:'mic',s:'koule',n:'Fotbalový míč'}];
+GEN.telesa=lv=>{
+  let svg,ans,obj='';
+  if(lv>0&&Math.random()<.5){ const o=pick(OBJ); svg=solidSvg(o.k); ans=SNAME[o.s]; obj=`<p class="obj">${o.n} má tvar…</p>` }
+  else { const k=pick(Object.keys(SNAME)); svg=solidSvg(k,pick(COLS)); ans=SNAME[k] }
+  return {type:'telesa', task:'Jaké je to těleso?', key:`t${ans}${obj}`,
+    html:`<div class="solid">${svg}</div>${obj}<div class="solve" style="font-size:clamp(30px,4vw,44px)">${sl('s0','wide cur')}</div>`,
+    steps:[{kind:'choice',slot:'s0',ans,opts:Object.values(SNAME),many:true,hint:r=>hint({'krychle':'Všechny stěny jsou stejné čtverce.','kvádr':'Je jako krabice – stěny jsou obdélníky.','koule':'Kutálí se na všechny strany.','válec':'Nahoře a dole kruh. Kutálí se rovně.','kužel':'Dole kruh, nahoře špička.'}[ans],r?ans:'')}]};
+};
+
+// 9) Hádanky se symboly – Divíci str. 65
+const SYMS=['⚽','🏀','🎾','♟️','🎸','🧤'];
+GEN.hadanky=lv=>{
+  const [X,Y]=shuffle(SYMS.slice()).slice(0,2);
+  let x,y; do{x=rnd(3,9); y=rnd(2,9)}while(x===y);
+  const line=(l,r)=>`<div>${l}<span class="op">=</span>${r}</div>`;
+  const sym=s=>`<span class="sym">${s}</span>`;
+  if(lv<2){
+    return {type:'hadanky', task:'Vyluštíš hádanku?', key:`h${x}${y}`,
+      html:`<div class="riddle">${line(`${sym(X)}<span class="op">+</span>${sym(X)}`,2*x)}${line(`${sym(Y)}<span class="op">+</span>${sym(Y)}`,2*y)}
+        ${line(`${sym(X)}<span class="op">+</span>${sym(Y)}`,sl('s2'))}</div>
+        <div class="riddle" style="font-size:clamp(30px,4vw,44px);flex-direction:row;gap:30px"><div>${sym(X)} = ${sl('s0')}</div><div>${sym(Y)} = ${sl('s1')}</div></div>`,
+      steps:[
+        {kind:'num',slot:'s0',ans:x,hint:r=>hint(`Které číslo + to samé číslo = ${2*x}?`,`<span class="t">${r?x:'?'}</span> + <span class="t">${r?x:'?'}</span> = ${2*x}`)},
+        {kind:'num',slot:'s1',ans:y,hint:r=>hint(`Které číslo + to samé číslo = ${2*y}?`,`<span class="t">${r?y:'?'}</span> + <span class="t">${r?y:'?'}</span> = ${2*y}`)},
+        {kind:'num',slot:'s2',ans:x+y,hint:r=>calcHint(x,'+',y,r,`${X} je ${x}, ${Y} je ${y}`)}
+      ]};
+  }
+  return {type:'hadanky', task:'Těžká hádanka!', key:`hh${x}${y}`,
+    html:`<div class="riddle">${line(`${sym(X)}<span class="op">+</span>${sym(X)}`,2*x)}${line(`${sym(X)}<span class="op">+</span>${sym(Y)}`,x+y)}${line(sym(Y),sl('s0','cur'))}</div>`,
+    steps:[{kind:'num',slot:'s0',ans:y,hint:r=>hint(`Nejdřív zjisti ${X}: ${x} + ${x} = ${2*x}`,`${x+y} ${M} ${x} = <span class="t">${r?y:'?'}</span>`)}]};
+};
+
+/* ---------- Disciplíny ---------- */
+const DIS=[
+  {id:'bond',e:'🌳',n:'Rozklad čísel',d:'Domeček: nahoře číslo, dole části',
+    how:()=>`${treeHtml(fx(13),fx(10),fx(3))}<div class="steps">13 = 10 + 3</div>`, say:'Číslo nahoře se rozloží na dvě části dole. Třináct je deset a tři.'},
+  {id:'prechod',e:'🏒',n:'Přes desítku',d:'Odčítání s rozkladem: 15 − 6',
+    how:()=>`${eqUnder(15,6,fx(5),fx(1),fx(9))}<div class="steps">15 − 5 = 10<br>10 − 1 = 9</div>`, say:'Patnáct mínus šest. Šest rozložím na pět a jedna. Patnáct mínus pět je deset. Deset mínus jedna je devět.'},
+  {id:'dvojc',e:'🥅',n:'Dvouciferná čísla',d:'Odčítání: 18 − 14',
+    how:()=>`${eqUnder(18,14,fx(10),fx(4),fx(4))}<div class="steps">18 − 10 = 8<br>8 − 4 = 4</div>`, say:'Osmnáct mínus čtrnáct. Čtrnáct je deset a čtyři. Osmnáct mínus deset je osm. Osm mínus čtyři jsou čtyři.'},
+  {id:'porovnej',e:'⚖️',n:'Porovnávání',d:'Spočítej a ťukni &lt; &gt; =',
+    how:()=>`<div class="cmp"><div class="ex"><span class="res">6</span><span>13 − 7</span></div><span class="slot fix">&lt;</span><div class="ex"><span class="res">8</span><span>14 − 6</span></div></div><div class="steps">6 je menší než 8</div>`, say:'Nejdřív spočítej oba příklady. Potom ťukni na znaménko menší, větší, nebo rovná se.'},
+  {id:'retez',e:'⛓️',n:'Řetězovka',d:'Počítej kolečko po kolečku',
+    how:()=>`<div class="chain"><div class="node start">17</div><div class="link">−8</div><div class="node">9</div><div class="link">+6</div><span class="node slot cur">?</span></div>`, say:'Začni prvním číslem. Udělej příklad na čáře a výsledek napiš do kolečka. Pak pokračuj dál.'},
+  {id:'slovni',e:'📖',n:'Slovní úlohy',d:'Hokej, fotbal, šachy, kytara',
+    how:()=>`<div class="steps">1. Přečti (nebo ťukni 🔊)<br>2. Vyber příklad<br>3. Spočítej</div>`, say:'Přečti si úlohu, nebo ťukni na reproduktor. Pak vyber správný příklad a spočítej ho.'},
+  {id:'penize',e:'🪙',n:'Peníze',d:'Kolik je korun? Kolik vrátí?',
+    how:()=>`<div class="coins">${coinHtml(10)}${coinHtml(5)}${coinHtml(2)}</div><div class="steps">10 + 5 + 2 = 17 Kč</div>`, say:'Sčítej mince od té největší. Deset plus pět plus dva je sedmnáct korun.'},
+  {id:'telesa',e:'🧊',n:'Tělesa',d:'Krychle, kvádr, koule, válec, kužel',
+    how:()=>`<div class="row" style="gap:6px">${['krychle','kvadr','koule','valec','kuzel'].map(k=>`<div style="width:86px">${solidSvg(k,COLS[1]).replace('<svg','<svg style="width:86px"')}<div style="font-family:var(--f-display);font-weight:600;font-size:18px">${SNAME[k]}</div></div>`).join('')}</div>`, say:'Krychle, kvádr, koule, válec a kužel.'},
+  {id:'hadanky',e:'🧩',n:'Hádanky',d:'Stejné obrázky = stejná čísla',
+    how:()=>`<div class="riddle" style="font-size:clamp(34px,4.6vw,50px)"><div>⚽ + ⚽ = 14</div><div>⚽ = 7</div></div>`, say:'Stejný obrázek je vždycky stejné číslo. Míč plus míč je čtrnáct, takže míč je sedm.'}
+];
+const DMAP=Object.fromEntries(DIS.map(d=>[d.id,d]));
+
+/* ---------- Stav ---------- */
+const S={score:0,mode:'match',goals:0,total:0,first:0,streak:0,hattrick:false,dis:null};
+function addScore(n){
+  S.score+=n; $('#pts').textContent=S.score;
+  const el=$('#score'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+}
+function header(chip,res=null,cur=-1){
+  $('#chip').textContent=chip||'';
+  $('#dots').innerHTML=res?res.map((r,i)=>`<i class="dot ${r===1?'goal':r===0?'done':i===cur?'cur':''}"></i>`).join(''):'';
+}
+function plain(){stage.className='stage'; clearT(); document.onkeydown=null; try{speechSynthesis.cancel()}catch(e){}}
+function setBack(fn){ const b=$('#back'); if(fn){b.removeAttribute('href'); b.onclick=e=>{e.preventDefault(); fn()}} else {b.setAttribute('href','index.html'); b.onclick=null} }
+
+/* ---------- Jak na to ---------- */
+function howto(id,isNew,next){
+  plain(); const d=DMAP[id];
+  $('#title').textContent=d.n;
+  stage.classList.add('scroll');
+  stage.innerHTML=`${isNew?'<span class="new">Nové učivo</span>':''}
+    <p class="big">${d.e} Jak na to</p>
+    <div class="howto">${d.how()}</div>
+    <div class="row">${sayBtn(d.say)}<button class="btn" id="go">Jdu na to!</button></div>`;
+  bindSay(stage); $('#go').onclick=next;
+}
+
+/* ---------- Hraní série úloh ---------- */
+function playSet(tasks,label,done){
+  const res=Array(tasks.length).fill(null);
+  let i=0;
+  next();
+  function next(){
+    plain();
+    if(i>=tasks.length) return done();
+    const t=tasks[i];
+    const go=()=>runTask(t,ok=>{res[i]=ok; i++; next()});
+    if(S.mode==='match'&&!store('liga-how-'+t.type)){ store('liga-how-'+t.type,'1'); return howto(t.type,true,()=>{plain(); go()}) }
+    go();
+  }
+  function runTask(t,finish){
+    $('#title').textContent=label;
+    header(`${i} z ${tasks.length} hotovo`,res,i);
+    stage.innerHTML=`<div class="play">
+      <div class="left"><p class="task" id="task">${t.task} ${t.speak?sayBtn(t.speak):''}</p>${t.html}<div class="msg" id="msg"></div></div>
+      <div class="ctrl" id="ctrl"></div></div>`;
+    bindSay(stage);
+    const msg=$('#msg'), ctrl=$('#ctrl');
+    let si=0, perfect=true, revealed=false;
+    stepUI();
+
+    function stepUI(){
+      const st=t.steps[si]; let tries=0, locked=false;
+      if(t.onStep) t.onStep(si);
+      t.steps.forEach((s,k)=>{ const e=document.getElementById(s.slot); if(e&&!e.classList.contains('ok')) e.classList.toggle('cur',k===si) });
+      const slot=document.getElementById(st.slot);
+      document.onkeydown=null;
+      if(st.kind==='num'){
+        let typed='';
+        ctrl.innerHTML=`<div class="pad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="key" data-n="${n}">${n}</button>`).join('')}
+          <button class="key del" data-d="1" aria-label="Smazat">⌫</button><button class="key" data-n="0">0</button>
+          <button class="key go" data-ok="1" aria-label="Potvrdit" disabled>✔</button></div>`;
+        const okBtn=ctrl.querySelector('[data-ok]');
+        const show=()=>{if(locked) return; slot.textContent=typed||'?'; slot.classList.remove('bad'); okBtn.disabled=!typed};
+        const press=n=>{ if(locked||typed.length>=2) return; typed=typed==='0'?String(n):typed+n; show() };
+        const del=()=>{ if(locked) return; typed=typed.slice(0,-1); show() };
+        ctrl.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>press(b.dataset.n));
+        ctrl.querySelector('[data-d]').onclick=del;
+        okBtn.onclick=()=>submit(+typed);
+        document.onkeydown=e=>{ if(/^[0-9]$/.test(e.key)) press(e.key); else if(e.key==='Backspace') del(); else if(e.key==='Enter'&&typed) submit(+typed) };
+        st.clear=()=>{typed=''; show()};
+      }else{
+        ctrl.innerHTML=`<div class="opts ${st.many?'many':''}">${st.opts.map(o=>`<button class="opt ${st.sym?'sym':''}" data-v="${o}">${o.replace('<','&lt;').replace('>','&gt;')}</button>`).join('')}</div>`;
+        ctrl.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{ if(locked||b.classList.contains('bad')) return; st.btn=b; submit(b.dataset.v) });
+        st.clear=()=>{};
+      }
+      function submit(v){
+        if(locked) return; tries++;
+        if(String(v).trim()===String(st.ans).trim()){
+          locked=true; slot.textContent=st.ans; slot.classList.remove('bad','cur'); slot.classList.add('ok');
+          if(st.btn) st.btn.classList.add('ok');
+          if(tries>1) perfect=false;
+          advance();
+        }else if(tries===1){
+          perfect=false; slot.classList.add('bad'); if(st.btn) st.btn.classList.add('bad');
+          msg.innerHTML=`<p class="msg-t warn">Skoro! Zkus znovu.</p>${st.hint(false)}`;
+          if(st.kind==='num') T(()=>st.clear(),700);
+        }else{
+          locked=true; revealed=true; perfect=false;
+          slot.textContent=st.ans; slot.classList.remove('bad','cur'); slot.classList.add('ok');
+          ctrl.querySelectorAll('.opt').forEach(b=>{ if(b.dataset.v===String(st.ans)) b.classList.add('ok') });
+          msg.innerHTML=`<p class="msg-t warn">Takhle to je:</p>${st.hint(true)}<button class="btn sec" id="nx" style="min-width:200px">Dál ›</button>`;
+          $('#nx').onclick=()=>{msg.innerHTML=''; advance(true)};
+        }
+      }
+    }
+    function advance(skipMsg){
+      si++;
+      if(si<t.steps.length){
+        if(!skipMsg){ msg.innerHTML=`<p class="msg-t ok">Správně ✔</p>`; T(()=>{msg.innerHTML=''; stepUI()},650) }
+        else stepUI();
+        return;
+      }
+      // Úloha hotová
+      document.onkeydown=null;
+      ctrl.querySelectorAll('button').forEach(b=>b.disabled=true);
+      let pts, title, sub;
+      if(perfect){
+        pts=10; S.first++; S.goals++; S.streak++; title='Gól! 🥅'; sub=`+${pts} ⭐`;
+        if(S.streak%3===0){ pts+=10; S.hattrick=true; title='Hattrick! 🎩'; sub=`3 góly v řadě · +${pts} ⭐` }
+      }else if(!revealed){
+        pts=6; S.goals++; S.streak=0; title='Gól! 💪'; sub=`Nevzdal ses · +${pts} ⭐`;
+      }else{
+        pts=2; S.streak=0; title='Dobrá snaha 👍'; sub=`Příště to dáš · +${pts} ⭐`;
+      }
+      addScore(pts);
+      msg.innerHTML=`${t.done?`<p class="answer">${t.done}</p>`:''}<p class="msg-t ${revealed?'warn':'ok'}">${title}</p><p class="msg-s">${sub}</p>`;
+      T(()=>finish(revealed?0:1), revealed?1600:1400);
+    }
+  }
+}
+
+/* ---------- Pohybová pauza ---------- */
+const MOVES=[
+  {ico:'🏋️',t:'Udělej 5 dřepů'},
+  {ico:'🦘',t:'10× poskoč na místě'},
+  {ico:'⛸️',t:'Bruslař: 6× přešlápni<br>ze strany na stranu'},
+  {ico:'🥅',t:'Brankářský postoj.<br>Vydrž 5 vteřin!'},
+  {ico:'⚽',t:'Hlavička: 5× vyskoč<br>a kývni hlavou'},
+  {ico:'🎸',t:'Zahraj na vzdušnou kytaru<br>a 3× se otoč'}
+];
+let lastMove=-1;
+function moveBreak(next){
+  plain(); header('Přestávka'); $('#title').textContent='Pohyb!';
+  let m; do{m=Math.floor(Math.random()*MOVES.length)}while(m===lastMove); lastMove=m;
+  stage.innerHTML=`<div class="move-ico">${MOVES[m].ico}</div><p class="big">${MOVES[m].t}</p><button class="btn" id="go" disabled>Hotovo za 5</button>`;
+  const b=$('#go'); let s=5;
+  const tick=()=>{s--; if(s>0){b.textContent=`Hotovo za ${s}`; T(tick,1000)} else {b.disabled=false; b.textContent='Hotovo ✔'}};
+  T(tick,1000); b.onclick=next;
+}
+
+/* ---------- Sestavení úloh ---------- */
+function make(type,lv,used){
+  let t,k=0; do{t=GEN[type](lv); k++}while(used.has(t.key)&&k<40); used.add(t.key); return t;
+}
+const PERIODS=[
+  {name:'1. třetina',emoji:'🏒',what:'Rozehrávka',plan:[['bond',0],['porovnej',0],['penize',0],['prechod',0],['telesa',0],['slovni',0]]},
+  {name:'2. třetina',emoji:'🥅',what:'Útok',plan:[['retez',0],['dvojc',0],['porovnej',1],['penize',1],['hadanky',0],['slovni',1]]},
+  {name:'3. třetina',emoji:'🔥',what:'Finále',plan:[['prechod',1],['retez',1],['dvojc',1],['telesa',1],['slovni',2],['hadanky',2]]}
+];
+
+function reset(mode){ Object.assign(S,{score:0,mode,goals:0,total:0,first:0,streak:0,hattrick:false}); $('#pts').textContent='0' }
+function startMatch(){
+  reset('match'); setBack(start); const used=new Set();
+  const step=pi=>{
+    const P=PERIODS[pi];
+    const plan=[P.plan[0]].concat(shuffle(P.plan.slice(1,5)),[P.plan[5]]);   // začátek snadný, konec výzva
+    const tasks=plan.map(([ty,lv])=>make(ty,lv,used)); S.total+=tasks.length;
+    plain(); header(`${pi+1} z 3`); $('#title').textContent=P.name;
+    stage.innerHTML=`<div class="move-ico">${P.emoji}</div><p class="big">${P.name}: ${P.what}</p><p class="small">6 střel na branku.</p><button class="btn" id="go">Na led!</button>`;
+    $('#go').onclick=()=>playSet(tasks,P.name,()=> pi<2 ? moveBreak(()=>step(pi+1)) : end());
+  };
+  step(0);
+}
+function startDis(id){
+  reset('dis'); S.dis=id; setBack(start); const used=new Set();
+  const tasks=LV.map(lv=>make(id,lv,used)); S.total=tasks.length;
+  howto(id,false,()=>playSet(tasks,DMAP[id].n,end));
+}
+
+function start(){
+  plain(); header(''); setBack(null);
+  $('#title').textContent='Hokejová liga';
+  const best=+store('liga-rekord')||0;
+  stage.classList.add('scroll');
+  stage.innerHTML=`
+    <p class="big">Zápas: 3 třetiny 🏒</p>
+    <p class="small">18 úloh ze všeho. Mezi třetinami pohyb.${best?`<br>Tvůj rekord: <b>${best} ⭐</b>`:''}</p>
+    <button class="btn" id="match">Začít zápas</button>
+    <p class="sect">Nebo trénuj jednu věc (6 úloh):</p>
+    <div class="dgrid">${DIS.map(d=>`<button class="dtile" data-d="${d.id}"><span class="e">${d.e}</span><span><b>${d.n}</b><span>${d.d}</span></span>${store('liga-dis-'+d.id)?'<span class="star">⭐</span>':''}</button>`).join('')}</div>`;
+  $('#match').onclick=startMatch;
+  stage.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>startDis(b.dataset.d));
+}
+
+function end(){
+  plain(); setBack(start);
+  const match=S.mode==='match';
+  header(match?'Konec zápasu':'Hotovo');
+  $('#title').textContent=match?'Zápas skončil':DMAP[S.dis].n;
+  if(!match) store('liga-dis-'+S.dis,'1');
+  const badges=[
+    {e:'🏆',t:match?'Celý zápas':'Trénink dokončen',on:true},
+    {e:'🎩',t:'Hattrick',on:S.hattrick},
+    {e:'🎯',t:'Bez chyby',on:S.first===S.total},
+    {e:'🥇',t:'Střelec',on:S.goals>=Math.ceil(S.total*.75)}
+  ];
+  let rec='';
+  if(match){ const best=+store('liga-rekord')||0; if(S.score>best){store('liga-rekord',String(S.score)); rec=best?'<p class="record">Nový rekord! 🎉</p>':''} }
+  const head=S.goals===S.total?'Perfektní! 🏆':S.goals>=S.total*.75?'Skvělá práce! 🏆':'Dohrál jsi to celé! 👏';
+  stage.classList.add('scroll');
+  stage.innerHTML=`
+    <p class="big">${head}</p>
+    <p class="msg-t" style="color:var(--ink)">⭐ ${S.score}</p>${rec}
+    <div class="stats">🥅 Góly: <b>${S.goals} z ${S.total}</b> · napoprvé: <b>${S.first}</b></div>
+    <div class="badges">${badges.map(b=>`<div class="badge ${b.on?'':'off'}"><div class="emoji">${b.e}</div><b>${b.t}</b></div>`).join('')}</div>
+    <div class="row"><button class="btn" id="again">Hrát znovu</button><button class="btn sec" id="menu">Menu</button></div>`;
+  $('#again').onclick=match?startMatch:()=>startDis(S.dis);
+  $('#menu').onclick=start;
+}
+
+window.__liga={GEN,start}; // pro testy
+start();
+})();
+</script>
+</body>
+</html>
