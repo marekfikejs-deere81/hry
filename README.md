@@ -16,6 +16,11 @@ Předmět a popis dlaždice určují značky v hlavičce hry:
 
 Předměty s vlastní barvou: Matematika, Český jazyk, Prvouka, Angličtina. Jiný název se zobrazí šedě.
 
+## Požadavky na každou novou hru
+- Funguje na iPadu **i na iPhonu/mobilu** – na výšku i na šířku (Safari, bez instalace).
+- Úloha i ovládání (číselník, volby) se vejdou na jednu obrazovku bez posouvání; když se nevejde dlouhá nápověda, plocha jde posunout a nic se neusekne.
+- Otestovat aspoň na 390×844, 844×390, 360×640 a 1180×820.
+
 ## Soubory
 - `index.html` – rozcestník (neupravovat)
 - `apple-touch-icon.png`, `icon-512.png` – ikona na plochu iPadu
