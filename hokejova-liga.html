@@ -238,6 +238,134 @@ h1{font-family:var(--f-display); font-weight:700; font-size:clamp(24px,3.2vw,34p
 .badge.off{border-color:var(--line); background:var(--card); opacity:.45; filter:grayscale(1)}
 .record{font-family:var(--f-display); font-weight:700; font-size:28px; color:var(--ok); margin:0}
 .stats{font-size:22px; line-height:1.6}
+
+/* Pojistka: když se úloha nevejde (malý telefon, dlouhá nápověda), plocha se dá posunout – nic se neusekne */
+.stage:has(.play){justify-content:flex-start; overflow-y:auto}
+.play{min-height:100%; height:auto}
+.opts.many{display:grid; grid-template-columns:1fr 1fr}
+.opts.many .opt:last-child:nth-child(odd){grid-column:span 2}
+
+/* ---------- Telefon na výšku ---------- */
+@media (max-width:600px) and (orientation:portrait){
+  body{background-size:22px 22px}
+  .app{gap:8px; padding-top:max(8px,env(safe-area-inset-top,0px)); padding-bottom:max(8px,env(safe-area-inset-bottom,0px));
+    padding-left:max(8px,env(safe-area-inset-left,0px)); padding-right:max(8px,env(safe-area-inset-right,0px))}
+  header{flex-wrap:nowrap; gap:8px; min-height:44px}
+  .back{min-width:44px; height:44px; font-size:22px; border-radius:12px}
+  h1{font-size:21px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0}
+  .chip{display:none}
+  .right{gap:8px; flex:none}
+  .dots{gap:4px} .dot{width:13px; height:13px; border-width:2px} .dot.cur{border-width:3px}
+  .score{font-size:21px}
+  .stage{padding:12px; gap:14px; border-radius:20px; border-width:2px}
+  .big{font-size:clamp(24px,7vw,30px)}
+  .small{font-size:18px}
+  .btn{min-height:64px; min-width:0; width:100%; max-width:340px; font-size:26px; padding:0 20px}
+  .btn.sec{min-height:56px; font-size:21px}
+  .play{gap:10px}
+  .left{gap:10px}
+  .task{font-size:19px; gap:8px}
+  .say{width:44px; height:44px; font-size:20px}
+  .eq,.eqg,.tree{font-size:clamp(36px,11.5vw,56px)}
+  .chain{font-size:clamp(26px,8vw,40px); gap:6px 2px}
+  .chain .link{min-width:2em}
+  .story{font-size:clamp(19px,5.4vw,24px); line-height:1.5}
+  .solve{font-size:clamp(32px,9.5vw,46px)}
+  .cmp{font-size:clamp(30px,9.2vw,44px)}
+  .riddle{font-size:clamp(28px,8.6vw,42px); gap:6px}
+  .coins{zoom:.85; gap:8px}
+  .shop{font-size:21px; gap:8px; flex-wrap:wrap; justify-content:center}
+  .solid svg{width:min(180px,46vw)}
+  .obj{font-size:20px}
+  .msg{min-height:64px; gap:6px}
+  .msg-t{font-size:clamp(24px,7vw,30px)}
+  .msg-s{font-size:17px}
+  .answer{font-size:20px}
+  .hint{font-size:clamp(19px,5.6vw,24px); padding:8px 14px; border-radius:14px}
+  .hint small{font-size:15px}
+  .pad{grid-template-columns:repeat(3,minmax(0,1fr)); width:100%; max-width:360px; grid-auto-rows:clamp(50px,8dvh,68px); gap:8px}
+  .key{font-size:30px; border-radius:16px}
+  .key.del{font-size:26px} .key.go{font-size:28px}
+  .opts{width:100%; max-width:420px; gap:8px}
+  .opt{min-height:60px; font-size:24px; border-radius:16px; flex:1 1 120px}
+  .opt.sym{font-size:42px; min-height:66px}
+  .opts.many .opt{min-height:52px; font-size:22px}
+  .howto{padding:14px; gap:10px; border-radius:18px; max-width:100%}
+  .howto .eqg,.howto .tree{font-size:clamp(32px,10vw,46px)}
+  .howto .steps{font-size:20px}
+  .howto .row{gap:8px!important} .howto .row>div{width:58px!important} .howto svg{width:58px!important}
+  .dgrid{grid-template-columns:1fr; gap:8px}
+  .dtile{min-height:64px; padding:8px 12px; border-radius:16px}
+  .dtile .e{font-size:30px} .dtile b{font-size:19px} .dtile span{font-size:14px}
+  .sect{font-size:18px; margin:2px 0 -6px}
+  .pcard{width:140px}
+  .move-ico{font-size:72px}
+  .badge{width:calc(50% - 6px); max-width:150px}
+  .stats{font-size:18px}
+}
+
+/* ---------- Telefon na šířku (nízká obrazovka) ---------- */
+@media (max-height:500px) and (orientation:landscape){
+  body{background-size:22px 22px}
+  .app{gap:6px; padding-top:max(6px,env(safe-area-inset-top,0px)); padding-bottom:max(6px,env(safe-area-inset-bottom,0px));
+    padding-left:max(10px,env(safe-area-inset-left,0px)); padding-right:max(10px,env(safe-area-inset-right,0px))}
+  header{min-height:38px; gap:10px; flex-wrap:nowrap}
+  .back{min-width:40px; height:38px; font-size:20px; border-radius:10px}
+  h1{font-size:20px; white-space:nowrap}
+  .chip{font-size:14px; padding:3px 10px}
+  .dot{width:14px; height:14px; border-width:2px}
+  .score{font-size:20px}
+  .stage{padding:8px 12px; gap:8px; border-radius:18px; border-width:2px}
+  .big{font-size:clamp(20px,6.5vh,28px)}
+  .small{font-size:16px; line-height:1.35}
+  .btn{min-height:52px; min-width:180px; font-size:22px; padding:0 22px}
+  .btn.sec{min-height:46px; font-size:18px}
+  .play{grid-template-columns:1fr auto; gap:14px}
+  .left{gap:6px}
+  .task{font-size:16px; gap:6px}
+  .say{width:38px; height:38px; font-size:17px}
+  .eq,.eqg,.tree{font-size:clamp(30px,12.5vh,54px)}
+  .tree svg{height:.6em}
+  .chain{font-size:clamp(22px,7.6vh,34px); gap:4px 2px}
+  .chain .link{min-width:2em}
+  .story{font-size:clamp(16px,4.8vh,21px); line-height:1.35}
+  .story p{margin:0 0 2px}
+  .solve{font-size:clamp(26px,9vh,40px)}
+  .cmp{font-size:clamp(28px,10vh,44px)}
+  .riddle{font-size:clamp(22px,7.6vh,34px); gap:2px}
+  .riddle[style]{font-size:clamp(18px,6vh,26px)!important}
+  .coins{zoom:.72; gap:8px}
+  .shop{font-size:19px; gap:8px}
+  .solid svg{width:auto; height:34vh}
+  .obj{font-size:17px}
+  .msg{min-height:0; gap:4px}
+  .msg-t{font-size:clamp(20px,7vh,28px)}
+  .msg-s{font-size:15px}
+  .answer{font-size:17px}
+  .hint{font-size:clamp(16px,5.4vh,22px); padding:6px 12px; gap:2px; border-radius:12px}
+  .hint small{font-size:13px}
+  .pad{grid-template-columns:repeat(3,66px); grid-auto-rows:clamp(40px,calc((100dvh - 92px)/4),62px); gap:6px}
+  .key{font-size:26px; border-radius:14px; box-shadow:0 3px 0 var(--line)}
+  .key.del{font-size:22px} .key.go{font-size:24px}
+  .opts{width:220px; gap:6px}
+  .opt{min-height:46px; font-size:22px; border-radius:14px; padding:2px 10px}
+  .opt.sym{font-size:36px; min-height:56px}
+  .opts.many{width:240px}
+  .opts.many .opt{min-height:44px; font-size:19px}
+  .howto{padding:8px 16px; gap:6px; flex-direction:row; flex-wrap:wrap; justify-content:center}
+  .howto .eqg,.howto .tree{font-size:clamp(26px,9vh,38px)}
+  .howto .steps{font-size:17px; line-height:1.35}
+  .howto .row{gap:10px!important} .howto .row>div{width:58px!important} .howto svg{width:56px!important}
+  .new{font-size:14px}
+  .dgrid{grid-template-columns:repeat(3,1fr); gap:8px}
+  .dtile{min-height:56px; padding:6px 10px; border-radius:14px}
+  .dtile .e{font-size:26px} .dtile b{font-size:17px} .dtile span{font-size:12px}
+  .sect{font-size:16px; margin:0 0 -4px}
+  .move-ico{font-size:52px}
+  .badge{width:110px; padding:6px} .badge .emoji{font-size:28px} .badge b{font-size:14px}
+  .stats{font-size:17px; line-height:1.3}
+  .record{font-size:20px}
+}
 </style>
 </head>
 <body>
