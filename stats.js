@@ -12,7 +12,7 @@
   /* ===== NASTAVENÍ =====
      Adresa webové aplikace Google Apps Script (končí na /exec).
      Návod: rodice/NAVOD-synchronizace.md. Prázdné = výsledky zůstanou jen v zařízení. */
-  var SYNC_URL='';
+  var SYNC_URL='https://script.google.com/macros/s/AKfycbxyDZBgOYVuDHaOgowh5SRKfdjePYLjbn2TegyHOukwAPKCbhsfsPABRTD126Is8y7P/exec';
 
   var KEY='hry-vysledky-v1', PKEY='hry-vysledky-k-odeslani', IKEY='hry-vysledky-sync-init', MAX_SESS=800;
   function now(){return Date.now()}
