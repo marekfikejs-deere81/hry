@@ -185,7 +185,10 @@ body{margin:0}
   </div>
 </div>
 
+<script src="stats.js"></script>
 <script>
+/* Záznam výsledků pro rodiče (stats.js). Chyba záznamu nikdy nezastaví hru. */
+const hs=(f,...a)=>{try{if(window.HS)window.HS[f](...a)}catch(e){}};
 document.getElementById("nojs").remove();
 (()=>{
 const ROUND=6, $=id=>document.getElementById(id);
@@ -234,7 +237,7 @@ function makeRound(level){
   const extra=[...kinds].sort(()=>Math.random()-.5).slice(0,ROUND-4);
   const list=[...kinds,...extra];
   for(let k=list.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[list[k],list[j]]=[list[j],list[k]]}
-  return list.map(kind=>({kind,pts:G[pick(LEVELS[level][kind])](),curve:kind.startsWith('curve'),closed:kind.endsWith('closed')}));
+  return list.map(kind=>{const shape=pick(LEVELS[level][kind]);return {kind,shape,pts:G[shape](),curve:kind.startsWith('curve'),closed:kind.endsWith('closed')}});
 }
 function corners(it){ if(it.curve) return []; const p=it.pts, out=[]; const n=it.closed?p.length-1:p.length; for(let k=0;k<n;k++){ if(!it.closed&&(k===0||k===p.length-1)) continue; out.push(p[k]); } return out; }
 
@@ -257,6 +260,7 @@ const ICON={
  open:'<svg viewBox="0 0 90 52"><path d="M12 40 C 25 4, 65 4, 78 40"/><circle class="e" cx="12" cy="40" r="7"/><circle class="e" cx="78" cy="40" r="7"/></svg>',
  closed:'<svg viewBox="0 0 90 52"><ellipse cx="45" cy="26" rx="34" ry="20"/></svg>'
 };
+const SHAPE_CS={wave:'vlnovka',arc:'oblouk',s:'esíčko',spiral:'spirála',cgap:'kruh s mezerou',circle:'kruh',ellipse:'ovál',blob:'kulatý tvar',zigzag:'cikcak',stairs:'schody',u:'tvar U',polyOpen:'lomená bez spojení',polyGap:'mnohoúhelník s mezerou',polyClosed:'trojúhelník/čtverec',polyClosedBig:'mnohoúhelník',star:'hvězda',house:'domeček'};
 const PRAISE=['Výborně!','Přesně tak!','Super!','Gól!','Paráda!'];
 function setChoices(step){
   const defs = step===0
@@ -276,12 +280,14 @@ function answer(val,btn){
   unlockAudio();
   const it=S.items[S.i];
   const correct = S.step===0 ? (val===it.curve) : (val===it.closed);
+  if(!S.logged){ S.logged=true;   // záznam jen prvního ťuknutí v kroku
+    hs('task',S.step===0?'Křivá × lomená':'Otevřená × uzavřená',`${SHAPE_CS[it.shape]||it.shape} → ${S.step===0?(it.curve?'křivá':'lomená'):(it.closed?'uzavřená':'otevřená')}`,correct?2:1); }
   if(correct){
     good(); btn.classList.add('right'); [...choices.children].forEach(c=>{if(c!==btn)c.classList.add('done')});
     fb.className='feedback good';
     fb.textContent = S.step===0 ? (it.curve?'Ano! Bez rohů = křivá.':'Ano! Rohy = lomená.') : (it.closed?pick(PRAISE)+' 0 konců = uzavřená.':pick(PRAISE)+' 2 konce = otevřená.');
     choices.style.pointerEvents='none';
-    setTimeout(()=>{choices.style.pointerEvents=''; if(S.step===0){S.step=1;fb.textContent='';fb.className='feedback';setChoices(1)} else next()}, 1100);
+    setTimeout(()=>{choices.style.pointerEvents=''; if(S.step===0){S.step=1;S.logged=false;fb.textContent='';fb.className='feedback';setChoices(1)} else next()}, 1100);
   }else{
     bad(); S.firstTry=false; btn.classList.add('shake'); setTimeout(()=>btn.classList.remove('shake'),450);
     fb.className='feedback hint';
@@ -296,10 +302,11 @@ function renderTop(){
   $('goals').textContent=`Góly: ${S.results.filter(Boolean).length}`;
   $('levelTag').textContent=`${S.level}. třetina`;
 }
-function show(){ S.step=0; S.firstTry=true; fb.textContent=''; fb.className='feedback'; renderTop(); draw(S.items[S.i]); setChoices(0); }
+function show(){ S.step=0; S.logged=false; S.firstTry=true; fb.textContent=''; fb.className='feedback'; renderTop(); draw(S.items[S.i]); setChoices(0); }
 function next(){ S.results[S.i]=S.firstTry; S.i++; if(S.i>=ROUND){ renderTop(); finish(); } else show(); }
 function finish(){
   const n=S.results.filter(Boolean).length; fanfare();
+  hs('end',n,ROUND);
   $('endTitle').textContent = `${S.level}. třetina dohraná!`;
   $('endGoals').textContent = `Góly: ${n} z ${ROUND}`;
   let name,text;
@@ -312,7 +319,7 @@ function finish(){
   else { nb.hidden=true; $('move').textContent='Hotovo! 5 dřepů a pak pracovní list.'; }
   $('end').hidden=false;
 }
-function start(level){ unlockAudio(); S.level=level; S.i=0; S.results=[]; S.items=makeRound(level); $('intro').hidden=true; $('end').hidden=true; show(); try{navigator.wakeLock?.request('screen').catch(()=>{})}catch(e){} }
+function start(level){ unlockAudio(); S.level=level; S.i=0; S.results=[]; S.items=makeRound(level); hs('start',`${level}. třetina`); $('intro').hidden=true; $('end').hidden=true; show(); try{navigator.wakeLock?.request('screen').catch(()=>{})}catch(e){} }
 $('start1').onclick=()=>start(1); $('start2').onclick=()=>start(2);
 $('next').onclick=()=>start(2); $('again').onclick=()=>start(S.level);
 document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});

@@ -256,8 +256,11 @@ h1{font-family:var(--f-display); font-weight:700; font-size:clamp(22px,3vw,32px)
   </div>
 </div>
 
+<script src="stats.js"></script>
 <script>
 'use strict';
+/* Záznam výsledků pro rodiče (stats.js). Chyba záznamu nikdy nezastaví hru. */
+const hs=(f,...a)=>{try{if(window.HS)window.HS[f](...a)}catch(e){}};
 /* ================= Data =================
    Věty BEZ koncového znaménka. Pomlčka = hranice slabik (jen v režimu „slabiky").
    Prvních 6 vět v každém seznamu je snadných – jimi se začíná. */
@@ -346,11 +349,13 @@ let G=null;
 function newGame(){
   used=new Set();
   G={rounds:[buildR1(),buildR2(),buildR3()],r:0,i:0,score:0,res:[[],[],[]],missed:[],streak:0,bestStreak:0,practice:false};
+  hs('start','Zápas');
   showIntro();
 }
 function newPractice(){
   const items=G.missed.map(m=>({...m}));
   G={rounds:[shuffle(items)],r:0,i:0,score:0,res:[[]],missed:[],streak:0,bestStreak:0,practice:true};
+  hs('start','Opravný zápas');
   showTask();
 }
 
@@ -440,6 +445,8 @@ function showTask(){
     if(answered)return; answered=true;
     const v=b.dataset.v, ok=v===ans;
     G.res[G.r][G.i]=ok;
+    {const nm=x=>t.kind==='mark'?({'.':'tečka','?':'otazník','!':'vykřičník'}[x]):T[x].name;
+     hs('task',{mark:'Jaké znaménko',rp:'Rozkaz × přání',all:'Všechny 4 druhy'}[t.kind],`${plain(t.s)}${t.kind==='mark'?'':mk} → ${nm(ans)}${ok?'':` (vybral: ${nm(v)})`}`,ok);}
     stage.querySelectorAll('.opt').forEach(x=>{if(x.dataset.v===ans)x.classList.add('ok');else if(x!==b)x.classList.add('dim')});
     if(!ok)b.classList.add('no');
     if(t.kind==='mark'){const m=$('mk');m.textContent=mk;m.classList.add('fill')}
@@ -488,6 +495,7 @@ function showBreak(){
 function showEnd(){
   redraw=null; $('chip').textContent='Konec'; $('dots').innerHTML=''; $('prog').textContent='';
   const total=G.rounds.reduce((s,r)=>s+r.length,0);
+  hs('end',G.score,total);
   const badges=[['⚽','Dohrál jsi zápas!']];
   if(!G.practice){
     const per=G.res.map(r=>r.filter(Boolean).length);

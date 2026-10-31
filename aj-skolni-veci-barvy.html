@@ -149,8 +149,11 @@ h2{font-family:var(--f-display); font-weight:600; font-size:26px; margin:8px 0 0
 <body>
 <div class="app" id="app"></div>
 <div class="fb" id="fb"></div>
+<script src="stats.js"></script>
 <script>
 'use strict';
+/* Záznam výsledků pro rodiče (stats.js). Chyba záznamu nikdy nezastaví hru. */
+const hs=(f,...a)=>{try{if(window.HS)window.HS[f](...a)}catch(e){}};
 /* ================= Barvy a věci ================= */
 const COLORS={
   red:{hex:'#E53935',cs:'červená'}, orange:{hex:'#FB8C00',cs:'oranžová'}, yellow:{hex:'#FDD835',cs:'žlutá'},
@@ -289,11 +292,11 @@ function dict(){
 function bindSlow(){const s=document.getElementById('slow');if(s)s.onclick=()=>{slow=!slow;store.set('aj-slow',slow);s.classList.toggle('on',slow)}}
 
 const G={lv:0,tasks:[],i:0,res:[],first:true,done:false};
-function startLevel(n){G.lv=n;G.tasks=LEVELS[n].make();G.i=0;G.res=[];task()}
+function startLevel(n){G.lv=n;G.tasks=LEVELS[n].make();G.i=0;G.res=[];hs('start',`${n+1}. ${LEVELS[n].name}`);task()}
 
 function promptText(t){return t.say||t.ans.say}
 function task(){
-  const t=G.tasks[G.i]; G.first=true; G.done=false; fb.innerHTML='';
+  const t=G.tasks[G.i]; G.first=true; G.done=false; G.logged=false; fb.innerHTML='';
   const L=LEVELS[G.lv];
   app.innerHTML=`
   <div class="bar"><button class="iconbtn" id="home" aria-label="Menu">✕</button>
@@ -317,6 +320,8 @@ const PRAISE_CS=['GÓL!','Trefa!','Super!','Výborně!','Přesně tak!','Paráda
 function choose(t,b){
   if(G.done||b.classList.contains('no'))return;
   const o=t.opts[+b.dataset.k];
+  if(!G.logged){G.logged=true; const ok=o.id===t.ans.id;
+    hs('task',LEVELS[G.lv].name,`${t.ans.word} (${t.ans.cs})${ok?'':` – ťukl na: ${o.word}`}`,ok?2:1);}
   if(o.id===t.ans.id){
     G.done=true; b.classList.add('yes');
     G.res[G.i]=G.first?'goal':'save';
@@ -345,6 +350,7 @@ function showFb(t,o,p){
 function result(){
   fb.innerHTML=''; const L=LEVELS[G.lv];
   const goals=G.res.filter(r=>r==='goal').length;
+  hs('end',goals,N);
   const stars=goals>=5?3:goals>=3?2:1;
   if((best[G.lv]||0)<stars){best[G.lv]=stars;store.set('aj-best',best)}
   const br=BREAKS[rnd(BREAKS.length)];

@@ -166,7 +166,10 @@ h1{font-family:var(--f-display); font-weight:700; font-size:clamp(24px,3.2vw,34p
   </header>
   <main class="stage" id="stage"></main>
 </div>
+<script src="stats.js"></script>
 <script>
+/* Záznam výsledků pro rodiče (stats.js). Chyba záznamu nikdy nezastaví hru. */
+const hs=(f,...a)=>{try{if(window.HS)window.HS[f](...a)}catch(e){}};
 (()=>{
 const $=s=>document.querySelector(s);
 const stage=$('#stage');
@@ -259,12 +262,12 @@ function round1(done){
       p.onpointerdown=e=>{
         e.stopPropagation(); clearT(); stage.onpointerdown=null;
         const rt=Math.round(performance.now()-t0);
-        S.rt.push(rt); const [t,pts]=rate(rt); addScore(pts);
+        S.rt.push(rt); const [t,pts]=rate(rt); addScore(pts); hs('task','Brankář – rychlost','Chytit puk',2,rt);
         feedback(t,`${rt} ms · +${pts} ⭐`,'ok');
         i++; T(next,1200);
       };
       T(()=>{
-        stage.onpointerdown=null; S.miss1++;
+        stage.onpointerdown=null; S.miss1++; hs('task','Brankář – rychlost','Chytit puk',0);
         feedback('Puk proletěl','Nevadí, další chytíš!','warn');
         i++; T(next,1300);
       },2500);
@@ -300,12 +303,14 @@ function round2(done){
       let answered=false;
       stage.onpointerdown=()=>{
         if(answered) return; answered=true; clearT(); stage.onpointerdown=null;
+        hs('task','Stop, nebo střel',go?'Puk → ťuknout':'STOP → neťukat',go?2:0);
         if(go){S.goHit++; addScore(15); D=Math.max(750,D-60); feedback('Gól! 🥅','Rychlá střela · +15 ⭐','ok')}
         else feedback('To byla STOPka ✋','Příště ruce dolů. Nevadí!','warn');
         i++; T(next,1100);
       };
       T(()=>{
         answered=true; stage.onpointerdown=null;
+        hs('task','Stop, nebo střel',go?'Puk → ťuknout':'STOP → neťukat',go?0:2);
         if(go){D=Math.min(1500,D+120); feedback('Puk ujel','Příště rychleji!','warn')}
         else{S.stopOk++; addScore(20); feedback('Vydržel jsi! 💪','Sebeovládání · +20 ⭐','ok')}
         i++; T(next,1100);
@@ -345,12 +350,12 @@ function round3(done){
           c.classList.add('tap'); T(()=>c.classList.remove('tap'),220);
           p++;
           if(p===seq.length){
-            locked=true; S.memOk++; S.memMax=Math.max(S.memMax,len);
+            locked=true; S.memOk++; S.memMax=Math.max(S.memMax,len); hs('task','Paměť – sestava',`Sestava ${len} hráčů`,2,len);
             const pts=len*10; addScore(pts);
             T(()=>{feedback('Sestava sedí! ✔',`${len} hráčů · +${pts} ⭐`,'ok'); len=Math.min(8,len+1); fails=0; i++; T(next,1300)},350);
           }
         }else{
-          locked=true; c.classList.add('bad'); cells[seq[p]].classList.add('lit');
+          locked=true; c.classList.add('bad'); cells[seq[p]].classList.add('lit'); hs('task','Paměť – sestava',`Sestava ${len} hráčů`,0,len);
           T(()=>{
             feedback('Skoro! 🙂','Další sestava bude tvoje.','warn');
             fails++; if(fails>=2&&len>2){len--; fails=0}
@@ -388,12 +393,12 @@ function reset(mode){
 }
 const RUN=[round1,round2,round3];
 function startFull(){
-  reset('full');
+  reset('full'); hs('start','Celý trénink');
   const step=(i)=>intro(i,()=>{S.played.add(i); RUN[i](()=> i<2 ? moveBreak(()=>step(i+1)) : end())});
   step(0);
 }
 function startOne(i){
-  reset('one');
+  reset('one'); hs('start','Jen '+ROUNDS[i].name);
   intro(i,()=>{S.played.add(i); RUN[i](end)});
 }
 
@@ -413,6 +418,7 @@ function start(){
 }
 
 function end(){
+  hs('end',S.score);
   plain(); header('Hotovo!'); $('#dots').innerHTML='';
   $('#title').textContent='Trénink hotový';
   const hits=S.rt.filter(Boolean);

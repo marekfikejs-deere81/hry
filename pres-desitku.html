@@ -154,7 +154,10 @@ h1{font-family:var(--f-display); font-weight:700; font-size:clamp(24px,3.2vw,34p
   </header>
   <main class="stage" id="stage"></main>
 </div>
+<script src="stats.js"></script>
 <script>
+/* Záznam výsledků pro rodiče (stats.js). Chyba záznamu nikdy nezastaví hru. */
+const hs=(f,...a)=>{try{if(window.HS)window.HS[f](...a)}catch(e){}};
 (()=>{
 const $=s=>document.querySelector(s);
 const stage=$('#stage');
@@ -325,10 +328,13 @@ function playPeriod(pi,tasks,done){
       else if(e.key==='Backspace') del();
       else if(e.key==='Enter'&&typed) submit();
     };
+    const logT=r=>{const sh=[p.a,p.op,p.b,'=',p.c].map((x,k)=>(k===0&&p.u===0)||(k===2&&p.u===1)||(k===4&&p.u===2)?'?':x).join(' ');
+      hs('task',`${p.op==='+'?'Sčítání':'Odčítání'} ${p.cross?'přes 10':'bez přechodu'}`,`${sh}  (? = ${ans})`,r,(performance.now()-t0)/1000)};
     function submit(){
       if(locked||!typed) return;
       const v=+typed; tries++;
       if(v===ans){
+        logT(tries===1?2:1);
         locked=true; slot.classList.add('ok');
         const fast = tries===1 && performance.now()-t0<7000;
         let pts = tries===1 ? 10 : 5; if(fast) pts+=5;
@@ -346,6 +352,7 @@ function playPeriod(pi,tasks,done){
         msg.innerHTML=`<p class="msg-t warn">Skoro! Zkus znovu.</p>${hintFor(p,false)}`;
         T(()=>{typed=''; show()},700);
       }else{
+        logT(0);
         locked=true; S.streak=0; res[i]=0;
         slot.textContent=ans; slot.classList.remove('bad'); slot.classList.add('ok');
         msg.innerHTML=`<p class="msg-t warn">Brankář chytil.</p>${hintFor(p,true)}<button class="btn sec" id="nx" style="min-width:200px">Další střela ›</button>`;
@@ -380,7 +387,7 @@ function reset(mode){
   $('#pts').textContent='0';
 }
 function startFull(){
-  reset('full'); const used=new Set();
+  reset('full'); hs('start','Zápas'); const used=new Set();
   const step=pi=>{
     const tasks=buildPeriod(pi,used); S.total+=tasks.length;
     intro(pi,()=>playPeriod(pi,tasks,()=> pi<2 ? moveBreak(()=>step(pi+1)) : end()));
@@ -388,7 +395,7 @@ function startFull(){
   step(0);
 }
 function startOne(pi){
-  reset('one'); const tasks=buildPeriod(pi,new Set()); S.total=tasks.length; S.onePi=pi;
+  reset('one'); hs('start',PERIODS[pi].name); const tasks=buildPeriod(pi,new Set()); S.total=tasks.length; S.onePi=pi;
   intro(pi,()=>playPeriod(pi,tasks,end));
 }
 
@@ -408,6 +415,7 @@ function start(){
 }
 
 function end(){
+  hs('end',S.first,S.total);
   plain(); header('Konec zápasu');
   $('#title').textContent='Zápas skončil';
   const badges=[

@@ -230,8 +230,11 @@ h1{font-family:var(--f-display); font-weight:700; font-size:clamp(22px,3vw,32px)
   <main class="stage" id="stage" aria-live="polite"></main>
 </div>
 
+<script src="stats.js"></script>
 <script>
 'use strict';
+/* Záznam výsledků pro rodiče (stats.js). Chyba záznamu nikdy nezastaví hru. */
+const hs=(f,...a)=>{try{if(window.HS)window.HS[f](...a)}catch(e){}};
 /* ================= Data =================
    Pomlčka = hranice slabik (zobrazí se jen v režimu „slabiky", jinak se maže).
    Prvních N položek v každém seznamu je snadných – jimi se začíná. */
@@ -348,11 +351,13 @@ let G=null;
 function newGame(){
   G={rounds:[buildRound('opp',OPP,OPP_EASY),buildRound('syn',SYN,SYN_EASY),buildCls()],r:0,i:0,score:0,
      res:[[],[],[]],missed:[],streak:0,bestStreak:0,practice:false};
+  hs('start','Zápas');
   showIntro();
 }
 function newPractice(){
   const items=G.missed.map(m=>m.kind==='cls'?{...m,three:true}:{...m,opts:shuffle(m.opts)});
   G={rounds:[shuffle(items)],r:0,i:0,score:0,res:[[]],missed:[],streak:0,bestStreak:0,practice:true};
+  hs('start','Opravná třetina');
   showTask();
 }
 
@@ -423,6 +428,9 @@ function showTask(){
     if(answered)return; answered=true;
     const v=b.dataset.v, ok=v===t.ans;
     G.res[G.r][G.i]=ok;
+    {const C={x:'opak','=':'podobné','0':'ani jedno'};
+     if(t.kind==='cls')hs('task','Opak / podobné / ani jedno',`${plain(t.a)} – ${plain(t.b)} → ${C[t.ans]}${ok?'':` (vybral: ${C[v]})`}`,ok);
+     else hs('task',t.kind==='opp'?'Protiklady':'Souznačná slova',`${plain(t.a)} ${t.kind==='opp'?'×':'='} ${plain(t.ans)}${ok?'':` (vybral: ${plain(v)})`}`,ok);}
     stage.querySelectorAll('.opt').forEach(x=>{if(x.dataset.v===t.ans)x.classList.add('ok');else if(x!==b)x.classList.add('dim')});
     if(!ok)b.classList.add('no');
     const fb=$('fb');
@@ -472,6 +480,7 @@ function showBreak(){
 function showEnd(){
   redraw=null; $('chip').textContent='Konec'; $('dots').innerHTML=''; $('prog').textContent='';
   const total=G.rounds.reduce((s,r)=>s+r.length,0);
+  hs('end',G.score,total);
   let badges=[['🏒','Dohrál jsi zápas!']];
   if(!G.practice){
     const per=G.res.map(r=>r.filter(Boolean).length);

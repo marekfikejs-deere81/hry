@@ -381,7 +381,10 @@ h1{font-family:var(--f-display); font-weight:700; font-size:clamp(24px,3.2vw,34p
   </header>
   <main class="stage" id="stage"></main>
 </div>
+<script src="stats.js"></script>
 <script>
+/* Záznam výsledků pro rodiče (stats.js). Chyba záznamu nikdy nezastaví hru. */
+const hs=(f,...a)=>{try{if(window.HS)window.HS[f](...a)}catch(e){}};
 (()=>{
 const $=s=>document.querySelector(s);
 const stage=$('#stage');
@@ -583,7 +586,7 @@ GEN.penize=lv=>{
         <div class="solve">20 <span class="op">${M}</span> ${price} <span class="op">=</span> ${sl('s0','cur')}</div>`,
       steps:[{kind:'num',slot:'s0',ans:20-price,hint:r=>calcHint(20,M,price,r)}], done:`✔ Vrátí ti ${20-price} Kč`};
   }
-  const pool=lv===0?[1,2,5,10]:[1,2,5,10,20], n=lv===0?rnd(2,3):rnd(3,4);
+  const pool=lv===0?[1,2,5,10]:[1,2,5,10,20], n=lv===0?rnd(2,3):rnd(3,4);  // klíč m… odděluje mince +
   let cs,t=0; do{cs=[...Array(n)].map(()=>pick(pool)); t++}while((cs.reduce((s,v)=>s+v,0)>20||cs.reduce((s,v)=>s+v,0)<5)&&t<200);
   cs.sort((x,y)=>y-x); const sum=cs.reduce((s,v)=>s+v,0);
   const steps=[{kind:'num',slot:'s0',ans:sum,hint:r=>hint('Sečti od největší mince',`${cs.join(' + ')} = <span class="t">${r?sum:'?'}</span>`)}];
@@ -595,7 +598,7 @@ GEN.penize=lv=>{
     steps.push({kind:'choice',slot:'s1',ans:okBuy,opts:['Ano','Ne'],ask:'Stačí ti peníze?',
       hint:r=>hint(`Máš ${sum} Kč, stojí ${price} Kč`,`${sum} ${sum>price?'>':sum<price?'<':'='} ${price} → <span class="t">${r?okBuy:'?'}</span>`)});
   }
-  return {type:'penize', task:'Kolik je to korun?', key:`m${cs.join('')}`,
+  return {type:'penize', task:'Kolik je to korun?', key:`m${cs.join('+')}`,
     html:`<div class="coins">${cs.map(coinHtml).join('')}</div><div class="solve">${sl('s0','cur')}<span>Kč</span></div>${shop}`,
     steps, onStep:i=>{ if(i===1){ const s=$('#shop'); if(s) s.style.visibility='visible'; $('#task').firstChild.textContent='Stačí ti peníze? ' } }};
 };
@@ -775,6 +778,7 @@ function playSet(tasks,label,done){
         return;
       }
       // Úloha hotová
+      hs('task',DMAP[t.type]?DMAP[t.type].n:t.type,taskLabel(t),perfect?2:revealed?0:1);
       document.onkeydown=null;
       ctrl.querySelectorAll('button').forEach(b=>b.disabled=true);
       let pts, title, sub;
@@ -791,6 +795,24 @@ function playSet(tasks,label,done){
       T(()=>finish(revealed?0:1), revealed?1600:1400);
     }
   }
+}
+
+/* ---------- Popis úlohy pro rodičovský přehled ---------- */
+function taskLabel(t){
+  const k=t.key||'', strip=h=>String(h).replace(/<[^>]+>/g,'').trim(), last=t.steps[t.steps.length-1].ans;
+  try{
+    switch(t.type){
+      case 'bond': { if(k.startsWith('bt')){const [p,q]=k.slice(2).split('-');return `? = ${p} + ${q}  (${last})`} const [w,c]=k.slice(1).split('-');return `${w} = ${c} + ?  (${last})` }
+      case 'prechod': case 'dvojc': { const [a,b]=k.slice(1).split('-');return `${a} ${M} ${b} = ${a-b}` }
+      case 'porovnej': { const [l,r]=k.slice(1).split('|');return `${l}  ${last}  ${r}` }
+      case 'retez': return `řetěz ${k.slice(1)}`;
+      case 'slovni': return `${strip(t.speak)} → ${t.steps[0].ans} = ${last}`;
+      case 'penize': return k.startsWith('v')?`vrátit z 20 Kč, cena ${k.slice(1)} Kč`:`mince ${k.slice(1)} = ${t.steps[0].ans} Kč${t.steps[1]?' · stačí? '+t.steps[1].ans:''}`;
+      case 'telesa': { const o=strip(k.replace(/^t[^<]*/,''));return `${o?o+' ':''}→ ${last}` }
+      case 'hadanky': return `${t.task} (výsledek ${last})`;
+    }
+  }catch(e){}
+  return t.task;
 }
 
 /* ---------- Pohybová pauza ---------- */
@@ -824,7 +846,7 @@ const PERIODS=[
 
 function reset(mode){ Object.assign(S,{score:0,mode,goals:0,total:0,first:0,streak:0,hattrick:false}); $('#pts').textContent='0' }
 function startMatch(){
-  reset('match'); setBack(start); const used=new Set();
+  reset('match'); hs('start','Zápas'); setBack(start); const used=new Set();
   const step=pi=>{
     const P=PERIODS[pi];
     const plan=[P.plan[0]].concat(shuffle(P.plan.slice(1,5)),[P.plan[5]]);   // začátek snadný, konec výzva
@@ -836,7 +858,7 @@ function startMatch(){
   step(0);
 }
 function startDis(id){
-  reset('dis'); S.dis=id; setBack(start); const used=new Set();
+  reset('dis'); S.dis=id; hs('start','Trénink: '+DMAP[id].n); setBack(start); const used=new Set();
   const tasks=LV.map(lv=>make(id,lv,used)); S.total=tasks.length;
   howto(id,false,()=>playSet(tasks,DMAP[id].n,end));
 }
@@ -857,6 +879,7 @@ function start(){
 }
 
 function end(){
+  hs('end',S.first,S.total);
   plain(); setBack(start);
   const match=S.mode==='match';
   header(match?'Konec zápasu':'Hotovo');
