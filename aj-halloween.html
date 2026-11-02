@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-title" content="Hry">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Halloween</title>
+<meta name="hra:predmet" content="Angličtina">
+<meta name="hra:popis" content="ghost, witch, pumpkin, bat… Poslouchej, čti a rozděl hada. S výslovností.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Čtverečkovaný sešit jako ostatní hry, halloweenská oranžová jako akcent. Jeden úkol na obrazovce.
+   Herní obrazovka má pevnou výšku (100dvh) a dlaždice se dopočítají, aby se vešly na iPad i mobil na výšku i na šířku. */
+:root{
+  --paper:#F6F9FC; --grid:#DCE7F2; --ink:#1C2A3A; --muted:#5B6E82; --card:#FFFFFF; --line:#1C2A3A;
+  --acc:#D9600B; --acc-soft:#FDEBDC; --aj:#7A4CC2; --aj-soft:#EEE6FA;
+  --ok:#1F8A4C; --ok-soft:#E3F4E8; --no:#9AA8B6; --no-soft:#EEF2F6; --star:#E8A317; --puck:#1C2A3A;
+  --f-display:"Fredoka",ui-rounded,system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#16202B; --grid:#223142; --ink:#EAF1F8; --muted:#9AAEC2; --card:#1F2C3B; --line:#EAF1F8;
+  --acc:#FF9A4D; --acc-soft:#3E2A1A; --aj:#B794FF; --aj-soft:#2E2347;
+  --ok:#4CD38A; --ok-soft:#173A28; --no:#6B7D90; --no-soft:#223142; --star:#FFC34D; --puck:#EAF1F8; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#16202B; --grid:#223142; --ink:#EAF1F8; --muted:#9AAEC2; --card:#1F2C3B; --line:#EAF1F8;
+  --acc:#FF9A4D; --acc-soft:#3E2A1A; --aj:#B794FF; --aj-soft:#2E2347;
+  --ok:#4CD38A; --ok-soft:#173A28; --no:#6B7D90; --no-soft:#223142; --star:#FFC34D; --puck:#EAF1F8; color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;
+  color:var(--ink); font-family:var(--f-body); font-size:20px;
+  overscroll-behavior:none;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+.app{
+  display:flex; flex-direction:column; gap:14px;
+  padding-top:max(12px,env(safe-area-inset-top,0px)); padding-bottom:max(14px,env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  max-width:1100px; margin:0 auto; min-height:100vh;
+}
+body.play .app{height:100vh; height:100dvh; min-height:0; overflow:hidden}
+h1{font-family:var(--f-display); font-weight:700; font-size:clamp(30px,5vw,46px); margin:0}
+.sub{color:var(--muted); margin:4px 0 0; font-size:clamp(17px,2.4vw,20px)}
+.back{color:var(--muted); text-decoration:none; font-size:18px; font-family:var(--f-display); font-weight:600}
+
+/* ---------- Menu ---------- */
+.tiles{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(290px,100%),1fr)); gap:14px}
+.tile{display:flex; align-items:center; gap:14px; padding:14px; min-height:110px; text-align:left;
+  background:var(--card); border:3px solid var(--acc); border-radius:24px; transition:transform .08s}
+.tile:active{transform:scale(.97)}
+.tile .ico{flex:none; width:80px; height:80px; border-radius:18px; background:var(--acc-soft); display:flex; align-items:center; justify-content:center}
+.tile .ico svg{width:68px;height:68px}
+.tile b{display:block; font-family:var(--f-display); font-size:25px; font-weight:700}
+.tile span{display:block; color:var(--muted); font-size:17px; margin-top:2px}
+.tile .stars{font-size:22px; letter-spacing:2px; color:var(--star); margin-top:4px}
+.tile .stars span{display:inline;margin:0;font-size:inherit;color:var(--grid)}
+.tile.dict{border-style:dashed}
+
+/* ---------- Hlavička úlohy ---------- */
+.bar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex:none}
+.iconbtn{width:52px;height:52px;border-radius:16px;border:3px solid var(--grid);background:var(--card);font-size:24px;display:flex;align-items:center;justify-content:center}
+.iconbtn.on{border-color:var(--acc);background:var(--acc-soft)}
+.lvl{font-family:var(--f-display); font-weight:600; font-size:19px; background:var(--acc-soft); color:var(--acc); padding:7px 14px; border-radius:999px}
+.progress{margin-left:auto; display:flex; align-items:center; gap:10px; font-family:var(--f-display); font-weight:600; font-size:20px}
+.pucks{display:flex; gap:5px}
+.puck{width:22px;height:22px;border-radius:50%;border:3px solid var(--muted)}
+.puck.cur{border-color:var(--ink); border-width:4px}
+.puck.goal{background:var(--puck);border-color:var(--puck)}
+.puck.save{border-style:dashed; border-color:var(--ok)}
+
+/* ---------- Zadání ---------- */
+.prompt{display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap; flex:none}
+.speak{width:clamp(70px,15vh,104px);height:clamp(70px,15vh,104px);border-radius:50%;border:none;background:var(--acc);color:#fff;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 6px 0 rgba(0,0,0,.18); flex:none}
+.speak:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.18)}
+.speak svg{width:52%;height:52%}
+.speak.talking{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+@media (prefers-reduced-motion: reduce){.speak.talking{animation:none}}
+.instr{font-family:var(--f-display); font-weight:600; font-size:clamp(24px,3.6vw,34px); line-height:1.2}
+.big{font-family:var(--f-display); font-weight:700; font-size:clamp(40px,8vh,64px); background:var(--card);
+  border:4px solid var(--acc); border-radius:24px; padding:4px 28px; line-height:1.25; letter-spacing:.02em}
+.big.cs{border-color:var(--muted)}
+.col{display:flex; flex-direction:column; align-items:center; gap:6px}
+.col .instr{font-size:clamp(20px,3vw,26px); color:var(--muted)}
+
+/* Možnosti – velikost dlaždic dopočítá fit() */
+.opts{flex:1 1 0; min-height:0; display:grid; gap:12px; justify-content:center; align-content:center}
+.opt{aspect-ratio:1; background:var(--card); border:4px solid var(--grid); border-radius:24px; display:flex; align-items:center; justify-content:center; padding:6px; transition:transform .1s, opacity .2s}
+.opt svg{width:90%;height:90%}
+.opt:active{transform:scale(.96)}
+.opt.yes{border-color:var(--ok); background:var(--ok-soft)}
+.opt.no{border-color:var(--no); background:var(--no-soft); opacity:.45}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+/* Textové možnosti (česky → anglicky) */
+.opts.txt{display:flex; flex-wrap:wrap; gap:14px; align-content:center}
+.opts.txt .opt{aspect-ratio:auto; min-width:min(240px,100%); min-height:clamp(64px,13vh,96px); padding:8px 24px;
+  font-family:var(--f-display); font-weight:700; font-size:clamp(30px,6vh,44px)}
+
+/* Had – rozděl slova */
+.snakebox{flex:1 1 0; min-height:0; display:flex; align-items:center; justify-content:center; overflow:auto}
+.snake{display:flex; align-items:center; gap:8px; background:#7CB342; border:4px solid var(--line); border-radius:999px 60px 60px 999px;
+  padding:10px 18px 10px 10px; max-width:100%}
+.snake .head{flex:none; width:clamp(48px,9vh,70px); height:clamp(48px,9vh,70px)}
+.letters{display:flex; flex-wrap:wrap; align-items:center; row-gap:6px; background:var(--card); border-radius:22px; padding:6px 8px}
+.u{display:flex; align-items:center}
+.ch{font-family:var(--f-display); font-weight:600; font-size:clamp(26px,min(7vh,7.5vw),64px); line-height:1.15; min-width:.62em; text-align:center; border-radius:8px; padding:0 1px}
+.ch.w0{color:var(--acc)} .ch.w1{color:var(--aj)} .ch.w2{color:var(--ok)}
+.gap{width:clamp(16px,2.6vw,26px); height:clamp(48px,9vh,72px); border:none; background:none; padding:0; position:relative; flex:none}
+.gap::after{content:''; position:absolute; left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:var(--grid)}
+.gap.cut::after{width:5px; height:80%; top:10%; margin:0 0 0 -2.5px; border-radius:3px; background:var(--acc)}
+.gap.bad::after{background:var(--no)}
+
+/* Zpětná vazba */
+.fb{position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:center; padding:0 12px max(12px,env(safe-area-inset-bottom,0px)); pointer-events:none; z-index:5}
+.fb .card{pointer-events:auto; width:min(760px,100%); background:var(--card); border:4px solid var(--ok); border-radius:26px; padding:14px 18px;
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap; box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.fb .head{font-family:var(--f-display); font-weight:700; font-size:24px; color:var(--ok)}
+.fb .word{font-family:var(--f-display); font-weight:700; font-size:clamp(30px,5vw,46px); line-height:1.05}
+.fb .cs{color:var(--muted); font-size:18px}
+.fb .grow{flex:1; min-width:180px}
+.mini{width:60px;height:60px;border-radius:50%;border:none;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.mini svg{width:32px;height:32px}
+.next{font-family:var(--f-display); font-weight:700; font-size:26px; background:var(--ok); color:#fff; border:none; border-radius:20px; padding:14px 26px; box-shadow:0 5px 0 rgba(0,0,0,.18)}
+.next:active{transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.next.alt{background:var(--card); color:var(--ink); border:3px solid var(--grid); box-shadow:none}
+@media (max-height:500px){.fb .card{padding:10px 14px} .fb .word{font-size:32px} .fb .head{font-size:20px} .fb .cs{font-size:16px}}
+
+/* ---------- Výsledek ---------- */
+.result{display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; padding:6px 0 20px}
+.result .title{font-family:var(--f-display); font-weight:700; font-size:clamp(36px,6vw,56px); margin:0}
+.result .stars{font-size:clamp(44px,9vh,64px); letter-spacing:6px; color:var(--star); line-height:1}
+.result .stars span{color:var(--grid)}
+.badge{font-family:var(--f-display); font-weight:600; font-size:22px; background:var(--acc-soft); color:var(--acc); padding:8px 20px; border-radius:999px}
+.break{background:var(--card); border:3px dashed var(--acc); border-radius:24px; padding:14px 18px; display:flex; align-items:center; gap:14px; max-width:640px; text-align:left}
+.break .t{font-family:var(--f-display); font-weight:700; font-size:clamp(24px,4vw,34px)}
+.break .c{color:var(--muted); font-size:18px}
+.row{display:flex; gap:12px; flex-wrap:wrap; justify-content:center}
+
+/* ---------- Slovníček ---------- */
+.dgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px}
+.dcard{background:var(--card); border:3px solid var(--grid); border-radius:22px; padding:8px 6px 12px; display:flex; flex-direction:column; align-items:center; gap:2px}
+.dcard svg{width:96px;height:96px}
+.dcard b{font-family:var(--f-display); font-size:26px; font-weight:700}
+.dcard span{color:var(--muted); font-size:16px}
+.dcard.hit{border-color:var(--acc); background:var(--acc-soft)}
+h2{font-family:var(--f-display); font-weight:600; font-size:24px; margin:6px 0 0}
+.phr{display:flex; gap:12px; flex-wrap:wrap}
+.phr button{font-family:var(--f-display); font-weight:600; font-size:24px; background:var(--card); border:3px solid var(--acc); border-radius:20px; padding:10px 18px}
+.warn{background:var(--card); border:3px solid var(--star); border-radius:18px; padding:12px 16px; font-size:18px}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="fb" id="fb"></div>
+<script src="stats.js"></script>
+<script>
+'use strict';
+/* Záznam výsledků pro rodiče (stats.js). Chyba záznamu nikdy nezastaví hru. */
+const hs=(f,...a)=>{try{if(window.HS)window.HS[f](...a)}catch(e){}};
+
+/* ================= Strašidla ================= */
+const COLORS={
+  red:{hex:'#E53935',cs:'červená'}, orange:{hex:'#FB8C00',cs:'oranžová'}, yellow:{hex:'#FDD835',cs:'žlutá'},
+  green:{hex:'#43A047',cs:'zelená'}, blue:{hex:'#1E88E5',cs:'modrá'}, purple:{hex:'#8E24AA',cs:'fialová'},
+  pink:{hex:'#F48FB1',cs:'růžová'}, brown:{hex:'#8D6E63',cs:'hnědá'}, black:{hex:'#262626',cs:'černá'}, white:{hex:'#FFFFFF',cs:'bílá'}
+};
+const S='stroke="var(--line)" stroke-width="3" stroke-linejoin="round"';
+const D='#1C2A3A';               // oči a pusy – vždy tmavé (sedí na světlých tělech)
+const eye=(x,y,r=8)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" ${S}/><circle cx="${x+1}" cy="${y+1}" r="${r*.45}" fill="${D}"/>`;
+const mirror=s=>`<g transform="translate(100 0) scale(-1 1)">${s}</g>`;
+const M={
+  ghost:{cs:'duch',def:'white',colors:['white','blue','green','pink'],
+    draw:c=>`<path d="M20 90 V44 Q20 10 50 10 Q80 10 80 44 V90 L70 81 L60 90 L50 81 L40 90 L30 81 Z" fill="${c}" ${S}/>
+      <ellipse cx="39" cy="42" rx="5.5" ry="8" fill="${D}"/><ellipse cx="61" cy="42" rx="5.5" ry="8" fill="${D}"/><ellipse cx="50" cy="61" rx="7" ry="5.5" fill="${D}"/>`},
+  witch:{cs:'čarodějnice',def:'purple',colors:['purple','black','green','blue'],
+    draw:c=>`${mirror(`<path d="M30 54 Q20 78 28 94 L38 68 Z" fill="#6D4C41" ${S}/>`)}<path d="M30 54 Q20 78 28 94 L38 68 Z" fill="#6D4C41" ${S}/>
+      <circle cx="50" cy="66" r="20" fill="#AED581" ${S}/>
+      <circle cx="43" cy="63" r="3" fill="${D}"/><circle cx="57" cy="63" r="3" fill="${D}"/>
+      <path d="M50 64 L54 72 L49 72" fill="none" stroke="${D}" stroke-width="2.5" stroke-linejoin="round"/><path d="M42 77 Q50 83 58 77" fill="none" stroke="${D}" stroke-width="3" stroke-linecap="round"/>
+      <path d="M31 50 L52 6 Q57 2 60 9 L69 50 Z" fill="${c}" ${S}/><path d="M34 43 H66 L67.5 49 H32.5 Z" fill="#FDD835" ${S}/>
+      <ellipse cx="50" cy="51" rx="35" ry="7" fill="${c}" ${S}/>`},
+  zombie:{cs:'zombie',def:'blue',colors:['blue','red','purple','brown'],
+    draw:c=>`<rect x="6" y="50" width="26" height="11" rx="5" fill="#9CCC65" ${S}/><rect x="68" y="50" width="26" height="11" rx="5" fill="#9CCC65" ${S}/>
+      <rect x="34" y="78" width="12" height="16" rx="2" fill="#5D4037" ${S}/><rect x="54" y="78" width="12" height="16" rx="2" fill="#5D4037" ${S}/>
+      <path d="M28 46 H72 V82 H28 Z" fill="${c}" ${S}/><path d="M28 82 L34 74 L40 82 L46 75 L52 82 L58 74 L64 82 L72 76" fill="none" ${S}/>
+      <rect x="31" y="8" width="38" height="38" rx="10" fill="#9CCC65" ${S}/>
+      <path d="M31 22 Q31 6 50 6 Q69 6 69 22 Q62 15 56 20 Q50 12 44 20 Q38 14 31 22 Z" fill="#4E342E" ${S}/>
+      ${eye(42,29,6)}${eye(59,28,4.5)}<path d="M40 39 L44 36 L48 39 L52 36 L56 39 L60 36" fill="none" stroke="${D}" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M60 14 V22 M57 16 H63 M57 20 H63" stroke="${D}" stroke-width="1.8"/>`},
+  skeleton:{cs:'kostlivec',def:'white',colors:['white'],
+    draw:c=>`<g stroke="var(--line)" stroke-width="4" stroke-linecap="round" fill="none">
+        <line x1="50" y1="44" x2="50" y2="74"/><path d="M38 52 Q50 48 62 52"/><path d="M38 59 Q50 55 62 59"/><path d="M40 66 Q50 62 60 66"/>
+        <path d="M38 50 L24 64 L20 56"/><path d="M62 50 L76 64 L80 56"/>
+        <path d="M42 74 H58"/><path d="M44 76 L38 94"/><path d="M56 76 L62 94"/></g>
+      <path d="M33 26 Q33 6 50 6 Q67 6 67 26 Q67 34 61 36 V43 H39 V36 Q33 34 33 26 Z" fill="${c}" ${S}/>
+      <circle cx="42.5" cy="23" r="5.5" fill="${D}"/><circle cx="57.5" cy="23" r="5.5" fill="${D}"/><path d="M50 28 L47 33 H53 Z" fill="${D}"/>
+      <path d="M45 37 V43 M50 37 V43 M55 37 V43" stroke="${D}" stroke-width="2"/>`},
+  pumpkin:{cs:'dýně',def:'orange',colors:['orange','green','white','yellow'],
+    draw:c=>`<path d="M48 26 Q48 14 57 9" stroke="#2E7D32" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <ellipse cx="50" cy="58" rx="42" ry="33" fill="${c}" ${S}/>
+      <path d="M50 25 Q30 58 50 91 M50 25 Q70 58 50 91" fill="none" stroke="var(--line)" stroke-width="2" opacity=".35"/>
+      <polygon points="27,52 37,38 43,53" fill="${D}"/><polygon points="73,52 63,38 57,53" fill="${D}"/><polygon points="50,56 46,63 54,63" fill="${D}"/>
+      <path d="M26 66 Q50 92 74 66 L66 70 L60 65 L54 71 L46 71 L40 65 L34 70 Z" fill="${D}"/>`},
+  monster:{cs:'příšera',def:'green',colors:['green','blue','purple','pink','red'],
+    draw:c=>`${mirror(`<path d="M30 30 Q20 14 28 6 Q30 18 40 24 Z" fill="#F2D2A9" ${S}/>`)}<path d="M30 30 Q20 14 28 6 Q30 18 40 24 Z" fill="#F2D2A9" ${S}/>
+      <path d="M14 90 Q10 50 22 34 Q34 18 50 18 Q66 18 78 34 Q90 50 86 90 Q80 84 74 91 Q68 84 62 91 Q56 84 50 91 Q44 84 38 91 Q32 84 26 91 Q20 84 14 90 Z" fill="${c}" ${S}/>
+      ${eye(38,45,10)}${eye(62,45,10)}
+      <path d="M30 63 Q50 84 70 63 Z" fill="${D}"/><polygon points="38,64 44,64 41,71" fill="#fff"/><polygon points="56,64 62,64 59,71" fill="#fff"/>`},
+  bat:{cs:'netopýr',def:'black',colors:['black','purple','brown','blue'],
+    draw:c=>{const w=`<path d="M44 46 C34 28 16 24 4 34 Q11 40 9 50 Q19 46 23 57 Q30 48 37 57 Q40 52 45 56 Z" fill="${c}" ${S}/>`;
+      return `${w}${mirror(w)}<polygon points="40,42 41,26 49,38" fill="${c}" ${S}/><polygon points="60,42 59,26 51,38" fill="${c}" ${S}/>
+      <ellipse cx="50" cy="52" rx="13" ry="17" fill="${c}" ${S}/>${eye(45,47,4.5)}${eye(55,47,4.5)}
+      <path d="M45 58 Q50 62 55 58" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><polygon points="47,59 49,59 48,63" fill="#fff"/><polygon points="51,59 53,59 52,63" fill="#fff"/>`}},
+  owl:{cs:'sova',def:'brown',colors:['brown','white','orange','purple'],
+    draw:c=>`${mirror(`<polygon points="23,36 24,10 41,26" fill="${c}" ${S}/>`)}<polygon points="23,36 24,10 41,26" fill="${c}" ${S}/>
+      <ellipse cx="50" cy="56" rx="31" ry="37" fill="${c}" ${S}/>
+      <ellipse cx="50" cy="71" rx="18" ry="18" fill="#fff" fill-opacity=".5"/>
+      <path d="M42 66 q3 3 6 0 M52 66 q3 3 6 0 M47 74 q3 3 6 0" fill="none" stroke="var(--line)" stroke-width="2" opacity=".6"/>
+      ${eye(37,41,12)}${eye(63,41,12)}<polygon points="45,52 55,52 50,61" fill="#FB8C00" ${S}/>
+      <path d="M40 92 v-5 M44 92 v-5 M56 92 v-5 M60 92 v-5" stroke="#FB8C00" stroke-width="3" stroke-linecap="round"/>`}
+};
+const WORDS=Object.keys(M);
+const svg=inner=>`<svg viewBox="0 0 100 100" aria-hidden="true">${inner}</svg>`;
+const art=w=>/^[aeiou]/i.test(w)?'an':'a';
+const capA=w=>{const a=art(w);return a[0].toUpperCase()+a.slice(1)};
+function tok(k,color){color=color||M[k].def;
+  return {id:k+'|'+color,svg:svg(M[k].draw(COLORS[color].hex)),word:k,cs:M[k].cs,say:k,that:`${art(k)} ${k}`}}
+function comboTok(k,color){const p=`${color} ${k}`;
+  return {id:k+'|'+color,svg:svg(M[k].draw(COLORS[color].hex)),word:p,cs:`${COLORS[color].cs} – ${M[k].cs}`,say:`${art(color)} ${p}`,that:`${art(color)} ${p}`}}
+
+/* ================= Pomocné ================= */
+const rnd=n=>Math.floor(Math.random()*n);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
+const pick=(a,n,not=[])=>shuffle(a.filter(x=>!not.includes(x))).slice(0,n);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ================= Výslovnost ================= */
+const canSpeak='speechSynthesis' in window;
+let voice=null, slow=store.get('aj-slow',false);
+function pickVoice(){
+  if(!canSpeak)return; const v=speechSynthesis.getVoices();
+  voice=v.find(x=>/en[-_]GB/i.test(x.lang)&&/Daniel|Kate|Serena|Arthur|Martha|Stephanie/i.test(x.name))
+     ||v.find(x=>/en[-_]GB/i.test(x.lang))||v.find(x=>/en[-_]US/i.test(x.lang)&&/Samantha|Nicky|Ava/i.test(x.name))
+     ||v.find(x=>/^en/i.test(x.lang))||null;
+}
+if(canSpeak){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+let talkBtn=null;
+function say(parts){
+  if(!canSpeak)return; if(!voice)pickVoice();
+  speechSynthesis.cancel();
+  (Array.isArray(parts)?parts:[parts]).forEach((t,k,arr)=>{
+    const u=new SpeechSynthesisUtterance(t);
+    u.lang=voice?voice.lang:'en-GB'; if(voice)u.voice=voice;
+    u.rate=slow?0.62:0.85; u.pitch=1.05;
+    if(talkBtn){if(k===0)u.onstart=()=>talkBtn&&talkBtn.classList.add('talking');
+      if(k===arr.length-1)u.onend=u.onerror=()=>document.querySelectorAll('.talking').forEach(b=>b.classList.remove('talking'))}
+    speechSynthesis.speak(u);
+  });
+}
+let unlocked=false;
+document.addEventListener('pointerdown',()=>{if(unlocked||!canSpeak)return;unlocked=true;const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u)},{capture:true});
+const SPK='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+const SNAKE_HEAD=svg(`<circle cx="50" cy="50" r="44" fill="#7CB342" ${S}/>${eye(36,40,11)}${eye(64,40,11)}<path d="M30 66 Q50 80 70 66" fill="none" stroke="${D}" stroke-width="4" stroke-linecap="round"/><path d="M50 74 V90 L44 96 M50 90 L56 96" stroke="#E53935" stroke-width="3.5" fill="none" stroke-linecap="round"/>`);
+
+/* ================= Úrovně ================= */
+const BREAKS=[
+  ['Fly like a bat!','Mávej rukama jako netopýr. Počítej do deseti.'],
+  ['Walk like a zombie!','Choď jako zombie – ruce dopředu, 10 kroků.'],
+  ['Jump like a monster! Five times!','Skoč 5× jako příšera.'],
+  ['Stand on one leg like an owl!','Stůj na jedné noze jako sova. Počítej do deseti.'],
+  ['Freeze like a skeleton!','Ztuhni jako kostlivec. Nehýbej se 5 vteřin.'],
+  ['Make a scary face! Boo!','Udělej strašidelný obličej a řekni BÚ!'],
+  ['Fly on a broom like a witch!','Leť na koštěti jako čarodějnice – oběhni stůl.']
+];
+const listenTask=(k,pool,n)=>({kind:'pic',mode:'listen',instr:'Poslouchej a ťukni.',ans:tok(k),opts:shuffle([tok(k),...pick(pool,n-1,[k]).map(x=>tok(x))])});
+const SNAKES=[['bat','owl'],['ghost','witch'],['owl','pumpkin'],['bat','zombie','owl'],['witch','skeleton'],['monster','bat','ghost'],['pumpkin','owl','witch'],['zombie','ghost','bat'],['skeleton','bat','owl']];
+const LEVELS=[
+  {name:'Strašidla',desc:'ghost, witch, pumpkin, bat',badge:'Lovec duchů',icon:()=>tok('ghost').svg,
+   make(){const p=['ghost','witch','pumpkin','bat'];return shuffle(p).concat(pick(p,2)).map(k=>listenTask(k,p,3))}},
+  {name:'Další strašidla',desc:'zombie, skeleton, monster, owl',badge:'Strašidlolog',icon:()=>tok('monster').svg,
+   make(){const nw=['zombie','skeleton','monster','owl'];return shuffle(nw).concat(pick(['ghost','witch','pumpkin','bat'],2)).map(k=>listenTask(k,WORDS,4))}},
+  {name:'Barevná strašidla',desc:'an orange pumpkin, a green monster…',badge:'Barevný kouzelník',icon:()=>tok('pumpkin').svg,
+   make(){const ks=shuffle(WORDS.filter(k=>M[k].colors.length>1)).slice(0,6);
+     return ks.map(k=>{const c=pick(M[k].colors,1)[0];
+       const opts=[comboTok(k,c),comboTok(k,pick(M[k].colors,1,[c])[0])];
+       const same=pick(WORDS.filter(x=>x!==k&&M[x].colors.includes(c)),1)[0];
+       if(same)opts.push(comboTok(same,c));
+       while(opts.length<4){const x=pick(WORDS,1,[k])[0],cc=pick(M[x].colors,1)[0];if(!opts.some(o=>o.id===x+'|'+cc))opts.push(comboTok(x,cc))}
+       return {kind:'pic',mode:'listen',instr:'Poslouchej a ťukni.',ans:comboTok(k,c),opts:shuffle(opts)}})}},
+  {name:'Přečti si',desc:'Přečti slovo a najdi obrázek',badge:'Čtenář strašidel',icon:()=>tok('bat').svg,
+   make(){return pick(WORDS,6).map(k=>({kind:'pic',mode:'read',instr:'Přečti a ťukni.',ans:tok(k),opts:shuffle([tok(k),...pick(WORDS,3,[k]).map(x=>tok(x))])}))}},
+  {name:'Česky → anglicky',desc:'duch = ghost, sova = owl',badge:'Překladatel',icon:()=>tok('owl').svg,
+   make(){return pick(WORDS.filter(k=>k!=='zombie'),6).map(k=>({kind:'txt',mode:'cs',instr:'Jak se to řekne anglicky?',ans:tok(k),opts:shuffle([tok(k),...pick(WORDS,2,[k]).map(x=>tok(x))])}))}},
+  {name:'Strašidelný had',desc:'ghostwitchowl → ghost | witch | owl',badge:'Krotitel hadů',icon:()=>SNAKE_HEAD,
+   make(){return [...SNAKES.slice(0,2),...pick(SNAKES.slice(2,5),2),...pick(SNAKES.slice(5),2)].map(ws=>({kind:'snake',instr:'Ťukni mezi slova.',words:ws}))}}
+];
+
+/* ================= Obrazovky ================= */
+const app=document.getElementById('app'), fb=document.getElementById('fb');
+const best=store.get('aj-halloween-best',{});
+const starsHtml=n=>[0,1,2].map(i=>i<n?'★':'<span>★</span>').join('');
+function setPlay(on){document.body.classList.toggle('play',on); window.scrollTo(0,0)}
+
+function menu(){
+  if(canSpeak)speechSynthesis.cancel(); fb.innerHTML=''; setPlay(false);
+  app.innerHTML=`
+  <a class="back" href="./">← Všechny hry</a>
+  <header><h1>Halloween 🎃</h1><p class="sub">Vyber úroveň. Jedna úroveň = 6 úkolů.</p></header>
+  ${canSpeak?'':'<div class="warn">Tenhle prohlížeč neumí mluvit. Otevři hru v Safari na iPadu.</div>'}
+  <div class="tiles">
+    <button class="tile dict" data-go="dict"><div class="ico">${tok('witch').svg}</div>
+      <div><b>Poslechni si</b><span>Ťukni na obrázek a uslyšíš slovo</span></div></button>
+    ${LEVELS.map((L,i)=>`<button class="tile" data-go="${i}"><div class="ico">${L.icon()}</div>
+      <div><b>${i+1}. ${esc(L.name)}</b><span>${esc(L.desc)}</span><div class="stars">${starsHtml(best[i]||0)}</div></div></button>`).join('')}
+  </div>`;
+  app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>b.dataset.go==='dict'?dict():startLevel(+b.dataset.go));
+}
+
+function dict(){
+  setPlay(false);
+  const card=t=>`<button class="dcard" data-say="${esc(t.say)}">${t.svg}<b>${esc(t.word)}</b><span>${esc(t.cs)}</span></button>`;
+  app.innerHTML=`
+  <div class="bar"><button class="iconbtn" id="home" aria-label="Zpět">✕</button><span class="lvl">Poslechni si</span>
+    <button class="iconbtn ${slow?'on':''}" id="slow" aria-label="Pomalu" style="margin-left:auto">🐢</button></div>
+  <h2>Halloween</h2><div class="dgrid">${WORDS.map(k=>card(tok(k))).join('')}</div>
+  <h2>Věty</h2><div class="phr">${[['Happy Halloween!','Veselý Halloween!'],['Trick or treat!','Koledu, nebo vám něco provedu!'],['Boo!','Bú!'],['An orange pumpkin.','Oranžová dýně.']]
+    .map(p=>`<button data-say="${p[0]}" title="${p[1]}">${p[0]}</button>`).join('')}</div>`;
+  document.getElementById('home').onclick=menu; bindSlow();
+  app.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>{app.querySelectorAll('.hit').forEach(x=>x.classList.remove('hit'));b.classList.add('hit');say(b.dataset.say)});
+}
+function bindSlow(){const s=document.getElementById('slow');if(s)s.onclick=()=>{slow=!slow;store.set('aj-slow',slow);s.classList.toggle('on',slow)}}
+
+/* Dlaždice obrázků: zkusí všechny počty sloupců a vybere největší, která se vejde. */
+function fit(){
+  const box=app.querySelector('.opts:not(.txt)'); if(!box)return;
+  const n=box.children.length, g=12, W=box.clientWidth, H=box.clientHeight; let bs=0,bc=n;
+  for(let c=1;c<=n;c++){const r=Math.ceil(n/c);const s=Math.min((W-(c-1)*g)/c,(H-(r-1)*g)/r,230);if(s>bs+0.5){bs=s;bc=c}}
+  box.style.gridTemplateColumns=`repeat(${bc},${Math.max(60,Math.floor(bs))}px)`;
+}
+addEventListener('resize',fit); addEventListener('orientationchange',()=>setTimeout(fit,250));
+
+const G={lv:0,tasks:[],i:0,res:[],first:true,done:false,logged:false};
+function startLevel(n){G.lv=n;G.tasks=LEVELS[n].make();G.i=0;G.res=[];hs('start',`${n+1}. ${LEVELS[n].name}`);task()}
+const N=()=>G.tasks.length;
+
+function head(){
+  const L=LEVELS[G.lv];
+  return `<div class="bar"><button class="iconbtn" id="home" aria-label="Menu">✕</button>
+    <span class="lvl">${G.lv+1}. ${esc(L.name)}</span>
+    <button class="iconbtn ${slow?'on':''}" id="slow" aria-label="Pomalu">🐢</button>
+    <div class="progress"><span>${G.i+1} z ${N()}</span><div class="pucks">${G.tasks.map((_,k)=>`<i class="puck ${G.res[k]||''} ${k===G.i?'cur':''}"></i>`).join('')}</div></div></div>`;
+}
+function task(){
+  const t=G.tasks[G.i]; G.first=true; G.done=false; G.logged=false; fb.innerHTML=''; setPlay(true);
+  if(t.kind==='snake')return snakeTask(t);
+  let prompt;
+  if(t.mode==='listen') prompt=`<button class="speak" id="spk" aria-label="Přehrát">${SPK}</button><div class="instr">${esc(t.instr)}</div>`;
+  else if(t.mode==='read') prompt=`<div class="col"><div class="instr">${esc(t.instr)}</div><div class="big">${esc(t.ans.word)}</div></div>`;
+  else prompt=`<div class="col"><div class="instr">${esc(t.instr)}</div><div class="big cs">${esc(t.ans.cs)}</div></div>`;
+  app.innerHTML=`${head()}<div class="prompt">${prompt}</div>
+  <div class="opts ${t.kind==='txt'?'txt':''}">${t.opts.map((o,k)=>`<button class="opt" data-k="${k}" aria-label="${t.kind==='txt'?esc(o.word):'Možnost '+(k+1)}">${t.kind==='txt'?esc(o.word):o.svg}</button>`).join('')}</div>`;
+  bindHead();
+  const spk=document.getElementById('spk');
+  if(spk){talkBtn=spk;spk.onclick=()=>say(t.ans.say);setTimeout(()=>say(t.ans.say),350)} else talkBtn=null;
+  app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>choose(t,b));
+  fit();
+}
+function bindHead(){document.getElementById('home').onclick=menu; bindSlow()}
+function log(skill,item,ok){if(G.logged)return;G.logged=true;hs('task',skill,item,ok?2:1)}
+
+const PRAISE=['Great!','Well done!','Super!','Yes!','Good job!','Excellent!','Spooky good!'];
+const PRAISE_CS=['GÓL!','Trefa!','Super!','Výborně!','Přesně tak!','Paráda!','Strašidelně dobře!'];
+function choose(t,b){
+  if(G.done||b.classList.contains('no'))return;
+  const o=t.opts[+b.dataset.k], ok=o.id===t.ans.id;
+  log(LEVELS[G.lv].name,`${t.ans.word} (${t.ans.cs})${ok?'':` – ťukl na: ${o.word}`}`,ok);
+  if(ok){
+    G.done=true; b.classList.add('yes');
+    G.res[G.i]=G.first?'goal':'save';
+    app.querySelectorAll('.bar .puck')[G.i].className='puck '+G.res[G.i];
+    const p=rnd(PRAISE.length); say([PRAISE[p],t.ans.say]);
+    showFb(t.ans.word,t.ans.cs,t.ans.say,p);
+  }else{
+    G.first=false; b.classList.add('no','shake');
+    if(t.mode==='listen') say([`That's ${o.that}.`,'Listen!',t.ans.say]);
+    else say([`That's ${o.that}.`,'Try again!']);
+  }
+}
+function showFb(word,cs,sayTxt,p){
+  const last=G.i===N()-1;
+  fb.innerHTML=`<div class="card">
+    <button class="mini" id="again" aria-label="Znovu">${SPK}</button>
+    <div class="grow"><div class="head">${esc(G.first?PRAISE_CS[p]+' 🏒':'Dobře, máš to! 👍')}</div><div class="word">${esc(word)}</div>
+      <div class="cs">${esc(cs)} · Řekni to nahlas!</div></div>
+    <button class="next" id="next">${last?'Konec ➜':'Dál ➜'}</button></div>`;
+  document.getElementById('again').onclick=()=>say(sayTxt);
+  document.getElementById('next').onclick=()=>{if(last)result();else{G.i++;task()}};
+}
+
+/* ----- Had: ťukáním mezi písmena rozděluje slova ----- */
+function snakeTask(t){
+  const str=t.words.join(''), cuts=[]; let acc=0;
+  t.words.forEach((w,i)=>{acc+=w.length; if(i<t.words.length-1)cuts.push(acc)});
+  const wordAt=i=>{let a=0;for(let k=0;k<t.words.length;k++){a+=t.words[k].length;if(i<a)return k}};
+  const found=new Set(), said=new Set();
+  app.innerHTML=`${head()}<div class="prompt"><div class="instr">${esc(t.instr)}</div></div>
+  <div class="snakebox"><div class="snake"><div class="head">${SNAKE_HEAD}</div><div class="letters">${
+    [...str].map((ch,i)=>`<span class="u"><span class="ch" data-i="${i}">${ch}</span>${i<str.length-1?`<button class="gap" data-i="${i+1}" aria-label="Rozdělit"></button>`:''}</span>`).join('')
+  }</div></div></div>`;
+  bindHead(); talkBtn=null;
+  const color=k=>app.querySelectorAll('.ch').forEach(c=>{if(wordAt(+c.dataset.i)===k)c.classList.add('w'+(k%3))});
+  app.querySelectorAll('.gap').forEach(g=>g.onclick=()=>{
+    if(G.done)return; const i=+g.dataset.i;
+    if(found.has(i))return;
+    if(cuts.includes(i)){
+      g.classList.add('cut'); found.add(i);
+      const done=t.words.map((_,k)=>k).filter(k=>!said.has(k)&&(k===0||found.has(cuts[k-1]))&&(k===t.words.length-1||found.has(cuts[k])));
+      done.forEach(k=>said.add(k));
+      done.forEach(color); if(done.length)say(done.map(x=>t.words[x]));
+      if(found.size===cuts.length){
+        G.done=true; t.words.forEach((_,x)=>color(x));
+        log(LEVELS[G.lv].name,`${str} → ${t.words.join(' | ')}`,G.first);
+        G.res[G.i]=G.first?'goal':'save';
+        app.querySelectorAll('.bar .puck')[G.i].className='puck '+G.res[G.i];
+        const p=rnd(PRAISE.length);
+        setTimeout(()=>say([PRAISE[p],...t.words]),done.length?900:0);
+        showFb(t.words.join(' | '),t.words.map(w=>M[w].cs).join(' | '),t.words,p);
+      }
+    }else{
+      G.first=false; g.classList.add('bad','shake'); setTimeout(()=>g.classList.remove('bad','shake'),500);
+      say('Not here!');
+    }
+  });
+}
+
+function result(){
+  fb.innerHTML=''; setPlay(false); const L=LEVELS[G.lv];
+  const goals=G.res.filter(r=>r==='goal').length, n=N();
+  hs('end',goals,n);
+  const stars=goals>=n-1?3:goals>=Math.ceil(n/2)?2:1;
+  if((best[G.lv]||0)<stars){best[G.lv]=stars;store.set('aj-halloween-best',best)}
+  const br=BREAKS[rnd(BREAKS.length)];
+  const lastLv=G.lv===LEVELS.length-1;
+  app.innerHTML=`
+  <div class="result">
+    <p class="title">Hotovo! 🎃</p>
+    <div class="pucks">${G.res.map(r=>`<i class="puck ${r}"></i>`).join('')}</div>
+    <div style="font-family:var(--f-display);font-weight:600;font-size:26px">${goals} ${goals===1?'gól':goals>=2&&goals<=4?'góly':'gólů'} z ${n}</div>
+    <div class="stars">${starsHtml(stars)}</div>
+    <div class="badge">Odznak: ${esc(L.badge)}</div>
+    <div class="break"><button class="mini" id="brk" aria-label="Přehrát">${SPK}</button>
+      <div><div class="c">Pohybová pauza:</div><div class="t">${esc(br[0])}</div><div class="c">${esc(br[1])}</div></div></div>
+    <div class="row">
+      ${lastLv?'':`<button class="next" id="nx">Další úroveň ➜</button>`}
+      <button class="next alt" id="re">Hrát znovu</button>
+      <button class="next alt" id="mn">Menu</button>
+    </div>
+  </div>`;
+  talkBtn=null;
+  setTimeout(()=>say(['Well done!',br[0]]),300);
+  document.getElementById('brk').onclick=()=>say(br[0]);
+  const nx=document.getElementById('nx'); if(nx)nx.onclick=()=>startLevel(G.lv+1);
+  document.getElementById('re').onclick=()=>startLevel(G.lv);
+  document.getElementById('mn').onclick=menu;
+}
+
+menu();
+</script>
+</body>
+</html>
